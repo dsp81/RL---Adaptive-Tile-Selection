@@ -52,3 +52,5 @@ We used a XGBoost regressor on the aggregated object counts.
 Predict cluster-level poverty index 
 
 Here's the KAGGLE Notebook implementation : https://www.kaggle.com/code/digvijaysinghparihar/yolo-rl/edit
+
+** This is a re-implementation of the paper titled "Efficient Poverty Mapping from High Resolution Remote Sensing Images" by Kumar Ayush, Burak Uzkent, Kumar Tanmay, Marshall Burke, David Lobell and Stefano Ermon from scratch. The code is our own which is modeled to replicate the paper. The HR dataset is acquired by using Google Earth. 
