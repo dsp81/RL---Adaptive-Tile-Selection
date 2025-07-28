@@ -27,18 +27,18 @@ Ground Truth Labels from LSMS survey data (cluster-level poverty index)
 High-Resolution Imagery (We made this dataset using Google-Earth) *More details in the files.
 
 2. Stage 1: Object Detection Feature Extraction
-Use YOLOv8, pretrained on xView dataset, to detect objects in 1000×1000px high-res tiles.
+Uses YOLOv8, pretrained on xView dataset, to detect objects in 1000×1000px high-res tiles.
 
-Extract 10-dimensional feature vectors (counts of parent object classes like buildings, vehicles, etc.)
+Extracts 10-dimensional feature vectors (counts of parent object classes like buildings, vehicles, etc.)
 
-Aggregate tile-wise object counts into a village-level feature vector.
+Aggregates the tile-wise object counts into a village-level feature vector.
 
 These vectors act as input features for downstream poverty prediction.
 
 3. Stage 2: Adaptive Tile Selection using RL
 The high-resolution image is divided into T tiles, which are further broken down into S sub-tiles.
 
-A two-step MDP is designed:
+We designed a two steo MDP (Markov Decision Process) :
 
 Step 1: Policy network takes low-res tile as input and outputs a selection mask over sub-tiles.
 
@@ -49,7 +49,7 @@ The policy is trained using REINFORCE (Policy Gradient) to maximize prediction a
 4. Poverty Prediction
 We used a XGBoost regressor on the aggregated object counts.
 
-Predict cluster-level poverty index 
+Predicts cluster-level poverty index 
 
 Here's the KAGGLE Notebook implementation : https://www.kaggle.com/code/digvijaysinghparihar/yolo-rl/edit
 
