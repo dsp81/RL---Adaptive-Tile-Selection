@@ -46,8 +46,9 @@
 }
 
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
+html{height:100%}
 body{
+  margin:0; min-height:100%;
   background:var(--surface-0); color:var(--text-primary);
   font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Inter,sans-serif;
   -webkit-font-smoothing:antialiased;
@@ -77,13 +78,15 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
 .tab:hover{color:var(--text-primary)}
 .tab.is-active{background:var(--surface-1);color:var(--text-primary);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 
-.view{flex:1;min-height:0}
+.view{flex:1 0 auto}
 .tabs a.tab{text-decoration:none;line-height:1.6}
 
-.foot{padding:10px 16px;border-top:1px solid var(--border);background:var(--surface-1);
-  color:var(--text-muted);font-size:12px}
+.foot{flex-shrink:0;padding:14px 20px;border-top:1px solid var(--border);
+  background:var(--surface-1);color:var(--text-muted);font-size:12px}
+.foot > span{display:block;max-width:1240px;margin:0 auto}
+.foot > span + span{margin-top:4px}
 
-/* ── detail panel ───────────────────────────────────────────────────────── */
+/* ── cluster example figures ────────────────────────────────────────────── */
 .imgrow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
 .imgrow figure{margin:0}
 .imgrow figcaption{font-size:12px;font-weight:600;margin-bottom:6px;display:flex;
@@ -99,13 +102,17 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
 /* ── cards ──────────────────────────────────────────────────────────────── */
 .card{background:var(--surface-1);border:1px solid var(--border);border-radius:14px;
   padding:18px 20px;margin-bottom:16px}
-.prose{max-width:96ch}
+.prose{max-width:none}
 .prose ol{padding-left:1.2em}.prose li{margin-bottom:.45em}
 
 /* ── the report ─────────────────────────────────────────────────────────── */
 /* The whole page is one prerendered article: long prose, many wide tables and inline SVG
    figures, so it gets its own rhythm rather than the card defaults. */
-#view-report{max-width:1080px;margin:0 auto;width:100%;padding:22px 20px 40px}
+#view-report{max-width:1240px;margin:0 auto;width:100%;padding:26px 24px 48px}
+#report{margin:0 auto}
+/* Tables and figures get the full column; running text keeps a readable measure. */
+#report p,#report li,#report summary{max-width:104ch}
+#report ol,#report ul{max-width:none}
 #report h3{margin-top:26px;padding-top:16px;border-top:1px solid var(--border);font-size:15px}
 #report h4{margin:18px 0 .3em;font-size:13.5px;color:var(--text-secondary)}
 #report > p:first-of-type + p{color:var(--text-secondary)}
@@ -121,8 +128,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
-thead th{color:var(--text-muted);font-size:11.5px;font-weight:600;
-  text-transform:uppercase;letter-spacing:.03em}
+thead th{color:var(--text-muted);font-size:11.5px;font-weight:600;letter-spacing:.02em}
 tbody tr:hover{background:var(--surface-2)}
 tr.is-hi td{font-weight:600}
 tr.is-hi td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
@@ -160,5 +166,23 @@ figure.fig{margin-inline:0}
   background:var(--surface-2)}
 .ex-head{font-size:13px;margin-bottom:9px;display:flex;gap:8px;flex-wrap:wrap;
   align-items:baseline}
-.ex .imgrow{margin:0}
+.ex .imgrow{margin:0;grid-template-columns:repeat(2,minmax(0,400px));gap:16px}
 .ex .imgwrap{background:var(--surface-0)}
+
+/* ── plain-language passages ────────────────────────────────────────────────── */
+/* The report is read by people who do not work on remote sensing or RL, so the technical
+   sections are interleaved with passages that assume neither. */
+.plain{background:var(--surface-2);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0 18px}
+.plain h4{margin:0 0 .4em;font-size:13px;color:var(--text-primary);
+  text-transform:uppercase;letter-spacing:.05em}
+.plain p:last-child{margin-bottom:0}
+.plain p,.plain li{max-width:100ch}
+.reads{font-size:13px;color:var(--text-secondary);margin:8px 0 18px;max-width:104ch}
+.reads b{color:var(--text-primary)}
+dl.glossary{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:8px 20px;
+  margin:12px 0 0;font-size:13.5px}
+dl.glossary dt{font-weight:600}
+dl.glossary dd{margin:0;color:var(--text-secondary)}
+@media (max-width:700px){dl.glossary{grid-template-columns:1fr;gap:2px 0}
+  dl.glossary dd{margin-bottom:10px}}

@@ -10,6 +10,46 @@
 
 A from-scratch reimplementation of Ayush, Uzkent, Tanmay, Burke, Lobell, Ermon, “Efficient Poverty Mapping from High Resolution Remote Sensing Images”, AAAI 2021. A policy network sees only the free Sentinel-2 image of a survey cluster and decides which of its 256 high-resolution subtiles are worth paying for; a frozen YOLOv3 detector runs on the acquired subtiles only; a gradient-boosted regressor predicts cluster mean consumption from what came back. Trained with REINFORCE and a self-critical baseline on 318 Uganda LSMS clusters over 7 seeds, each with its own held-out 20%. Every number on this page is read straight out of data/data.json, produced by one Kaggle run on 2026-09-16.
 
+## Start here — what this is, without the jargon
+
+The problem. Finding out how poor a place is normally means sending people door to
+door: the Uganda LSMS survey visits a cluster of households and records what they consume.
+That is slow and expensive, so there is a long line of research trying to predict it from
+satellite images instead. Free imagery — Sentinel-2, about 10 m per pixel — is blurry:
+you can see fields, water and roughly where a settlement is. Sharp imagery, where individual
+buildings and vehicles are visible, is sold by the tile, and covering a whole country with it
+costs real money.
+
+The idea being tested. Don't buy all of it. Cut each surveyed area into
+256 squares of about 70 m across,
+let a small neural network look only at the free blurry image, and have it decide
+which squares are worth paying for. An object detector then counts what it can see —
+buildings, vehicles, boats — in the purchased squares only, and a last model turns those
+counts into a guess at the area's average consumption. The chooser is trained by trial and
+error: rewarded for the objects it manages to capture, charged for every square it buys.
+
+How to read the scores. Nearly everything below is reported as
+r²: the share of the differences between areas that the model explains. Zero means it
+does no better than guessing the same average everywhere; one would mean perfect. The
+numbers here sit near 0.33 — about a third of the variation, which is a real
+signal but nowhere near a replacement for a survey. Held out means those areas were
+never shown to the model during training, which is the honest way to score it.
+
+What came out — two findings that point opposite ways. The choosing works: buying
+13.7% of the sharp imagery captures 70.7% of every object the
+detector would have found on the full grid, so the network really has learned where the busy
+squares are. But the counts don't help the final answer: a model given only the free blurry
+image scores r² 0.326, and adding everything bought moves it to
+0.314 — a change smaller than the run-to-run wobble of ±0.078. On this
+dataset the expensive imagery did not earn its keep.
+
+Why that might be. Honestly, three candidates, and this run cannot separate them:
+318 surveyed areas is a small sample; the free image may already encode the
+same thing the object counts do, since greenness and built-up texture track wealth directly;
+and at roughly one square kilometre per area, counting buildings may simply not add anything
+the blur has not already said. What is not the problem is the detector — it works
+(see below), and it finds 98,967 objects across the dataset.
+
 ## Headline numbers
 
 | Quantity | Value |
@@ -51,6 +91,8 @@ A from-scratch reimplementation of Ayush, Uzkent, Tanmay, Burke, Lobell, Ermon, 
 8. **One confound to carry with every number above.** The high-resolution scrape mixes native ground sample distances (0.30 / 0.60 / 1.19 m/px) and native GSD correlates with the target at r = 0.441 (p = 1.6e-16). Every subtile covers the same 70 m footprint and is resized to 224 px before detection, so zoom does not change apparent object size (0.311 m/px effective for every cluster) — but it does change sharpness, and that correlation bounds how much of the signal could ride on sharpness rather than content.
 
 ## Accuracy by acquisition policy and feature variant
+
+*In plain terms: Each pair of bars is one way of choosing which squares to buy. The lower bar in every pair is nearly the same length — once the free image is in the model, it barely matters which squares you bought, or whether you bought any at all (the vertical line). The upper bars are what the bought imagery achieves on its own, and they are short.*
 
 Pearson r² on the held-out split, mean over 7 seeds. Every policy is given the same tile budget the learned policy used.
 
@@ -126,6 +168,8 @@ All metrics, target log consumption:
 
 ## Cost / accuracy trade-off
 
+*In plain terms: Left to right, the policy is buying more imagery. The lower line climbs steeply — object counts get better simply by covering more ground, not by being cleverer. The upper line is nearly flat, because the free image was already doing that work.*
+
 λ is the cost coefficient in R_cost; 1 seed × 100 epochs per point.
 
 | λ | HR fraction bought | r² counts only | r² counts + LR | r² counts only (log) | r² counts + LR (log) |
@@ -170,6 +214,8 @@ Trained on 19,844 xView chips, validated on 2,480, 8.2 GPU-hours. mAP@50 = 0.449
 
 ## What the policy chooses not to look at
 
+*In plain terms: If squares were picked at random, each bar would sit near the share of imagery bought. They sit far higher, which is the clearest evidence in this run that the policy is finding where things actually are.*
+
 | Class | Objects per cluster, full grid | Missed by the policy | Recall |
 |---|---|---|---|
 | Building | 295.93 | 95.06 | 0.679 |
@@ -184,6 +230,8 @@ Trained on 19,844 xView chips, validated on 2,480, 8.2 GPU-hours. mAP@50 = 0.449
 | Construction Site | 1.33 | 0.73 | 0.454 |
 
 ## Feature importance (TreeSHAP, counts + LR regressor)
+
+*In plain terms: How much each input moves the final prediction. Almost all of the movement comes from the free image's colour and texture; the bought object counts barely register — the same conclusion as the tables, reached a different way.*
 
 | Feature | Kind | Mean |SHAP| | Share |
 |---|---|---|---|
@@ -284,6 +332,24 @@ Every baseline gets the same budget K the learned policy actually spent, so the 
 | SEEDS | 0, 1, 2, 3, 4, 5, 6 |
 | TEST_FRAC | 0.2 |
 | DETECTOR | xview |
+
+## Glossary
+
+- **Cluster** — A group of surveyed households treated as one place. The survey reports one consumption figure per cluster; this run has 318 of them.
+- **LSMS** — The World Bank's Living Standards Measurement Study — the household survey the target values come from.
+- **pc_cons** — Per-capita consumption: roughly what an average person in that cluster consumes, and the number every model here is trying to predict.
+- **Subtile** — One square of the grid each cluster is cut into — 256 of them per cluster, about 70 m across.
+- **LR / HR** — Low resolution (free Sentinel-2, ~9.5 m per pixel) and high resolution (the imagery being bought, 0.30–1.19 m per pixel).
+- **GSD** — Ground sample distance — how much ground one pixel covers. Smaller is sharper.
+- **r²** — Share of the variation between clusters that a model explains: 0 is no better than always guessing the average, 1 would be perfect.
+- **Spearman** — The same idea as r² but about rank order only — whether the model puts clusters in the right order, ignoring how far apart it thinks they are.
+- **Held out** — Scored on clusters the model never saw while training. Scores measured any other way are not trustworthy.
+- **Seed** — One complete training run with a different random start and a different train/test split. 7 were run; the spread between them is the error bar.
+- **λ (lambda)** — The price charged to the policy for each square it buys. Higher λ, less imagery bought.
+- **REINFORCE** — The reinforcement-learning method used: try something, see the reward, nudge the network towards whatever scored better.
+- **mAP@50** — The standard score for an object detector: how well its boxes match real objects. 0.449 here, on the xView benchmark.
+- **xView** — A large public dataset of labelled overhead imagery, used to teach the detector what buildings and vehicles look like from above.
+- **SHAP** — A method for asking how much each input contributed to a prediction.
 
 ## Files
 

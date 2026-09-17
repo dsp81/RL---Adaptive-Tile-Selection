@@ -566,6 +566,117 @@ FILES = [
     ("data/clusters/<cid>_hr.jpg", "high-resolution thumbnail, one per cluster"),
 ]
 
+# ───────────────────────────────────────────────────── plain-language passages
+# The report is read by people who do not work on remote sensing or reinforcement learning.
+# These passages carry the same numbers as the tables, with nothing assumed.
+def plain_intro():
+    m = S[MAIN]
+    return f"""<section class="plain" id="plain">
+<h4>Start here — what this is, without the jargon</h4>
+<p><b>The problem.</b> Finding out how poor a place is normally means sending people door to
+door: the Uganda LSMS survey visits a cluster of households and records what they consume.
+That is slow and expensive, so there is a long line of research trying to predict it from
+satellite images instead. Free imagery — Sentinel-2, about 10&nbsp;m per pixel — is blurry:
+you can see fields, water and roughly where a settlement is. Sharp imagery, where individual
+buildings and vehicles are visible, is sold by the tile, and covering a whole country with it
+costs real money.</p>
+<p><b>The idea being tested.</b> Don't buy all of it. Cut each surveyed area into
+{grid.get('subtiles')} squares of about {(grid.get('tile_km') or 0) * 1000:.0f}&nbsp;m across,
+let a small neural network look <em>only</em> at the free blurry image, and have it decide
+which squares are worth paying for. An object detector then counts what it can see —
+buildings, vehicles, boats — in the purchased squares only, and a last model turns those
+counts into a guess at the area's average consumption. The chooser is trained by trial and
+error: rewarded for the objects it manages to capture, charged for every square it buys.</p>
+<p><b>How to read the scores.</b> Nearly everything below is reported as
+<b>r²</b>: the share of the differences between areas that the model explains. Zero means it
+does no better than guessing the same average everywhere; one would mean perfect. The
+numbers here sit near {f(m['lr_only'], 2)} — about a third of the variation, which is a real
+signal but nowhere near a replacement for a survey. <b>Held out</b> means those areas were
+never shown to the model during training, which is the honest way to score it.</p>
+<p><b>What came out — two findings that point opposite ways.</b> The choosing works: buying
+{pc(mean_hr, 1)} of the sharp imagery captures {pc(object_recall, 1)} of every object the
+detector would have found on the full grid, so the network really has learned where the busy
+squares are. But the counts don't help the final answer: a model given only the free blurry
+image scores r² {f(m['lr_only'])}, and adding everything bought moves it to
+{f(m['rl_lr'])} — a change smaller than the run-to-run wobble of ±{f(m['rl_sd'])}. On this
+dataset the expensive imagery did not earn its keep.</p>
+<p><b>Why that might be.</b> Honestly, three candidates, and this run cannot separate them:
+{D.get('n_clusters')} surveyed areas is a small sample; the free image may already encode the
+same thing the object counts do, since greenness and built-up texture track wealth directly;
+and at roughly one square kilometre per area, counting buildings may simply not add anything
+the blur has not already said. What is <em>not</em> the problem is the detector — it works
+(see below), and it finds {num(objects_total)} objects across the dataset.</p>
+</section>"""
+
+READS = {
+    "methods": "Each pair of bars is one way of choosing which squares to buy. The lower bar "
+               "in every pair is nearly the same length — once the free image is in the "
+               "model, it barely matters which squares you bought, or whether you bought any "
+               "at all (the vertical line). The upper bars are what the bought imagery "
+               "achieves on its own, and they are short.",
+    "sweep": "Left to right, the policy is buying more imagery. The lower line climbs steeply "
+             "— object counts get better simply by covering more ground, not by being "
+             "cleverer. The upper line is nearly flat, because the free image was already "
+             "doing that work.",
+    "curves": "Training is working as intended: the score it optimises goes up, while the "
+              "share of imagery it buys falls. Nobody set that share by hand — it comes out "
+              "of the price the policy is charged per square.",
+    "predictions": "On the left, a perfect model would put every point on the diagonal. The "
+                   "points sit below it at the right-hand end: the model is cautious, and it "
+                   "badly underestimates the best-off areas. On the right, each dot is one "
+                   "surveyed area in its real position, shaded by what the survey measured.",
+    "recall": "If squares were picked at random, each bar would sit near the share of imagery "
+              "bought. They sit far higher, which is the clearest evidence in this run that "
+              "the policy is finding where things actually are.",
+    "shap": "How much each input moves the final prediction. Almost all of the movement comes "
+            "from the free image's colour and texture; the bought object counts barely "
+            "register — the same conclusion as the tables, reached a different way.",
+    "examples": "Two views of the same place: the free blurry image, and the sharp one with "
+                "the policy's choice drawn on it. Outlined squares were bought and examined; "
+                "dimmed squares were never purchased.",
+}
+
+def reads(key):
+    return f'<p class="reads"><b>In plain terms:</b> {READS[key]}</p>'
+
+GLOSSARY = [
+    ("Cluster", "A group of surveyed households treated as one place. The survey reports one "
+                "consumption figure per cluster; this run has %d of them." % (D.get("n_clusters") or 0)),
+    ("LSMS", "The World Bank's Living Standards Measurement Study — the household survey the "
+             "target values come from."),
+    ("pc_cons", "Per-capita consumption: roughly what an average person in that cluster "
+                "consumes, and the number every model here is trying to predict."),
+    ("Subtile", "One square of the grid each cluster is cut into — %d of them per cluster, "
+                "about %.0f m across." % (grid.get("subtiles") or 0,
+                                          (grid.get("tile_km") or 0) * 1000)),
+    ("LR / HR", "Low resolution (free Sentinel-2, ~9.5 m per pixel) and high resolution (the "
+                "imagery being bought, 0.30–1.19 m per pixel)."),
+    ("GSD", "Ground sample distance — how much ground one pixel covers. Smaller is sharper."),
+    ("r²", "Share of the variation between clusters that a model explains: 0 is no better "
+           "than always guessing the average, 1 would be perfect."),
+    ("Spearman", "The same idea as r² but about rank order only — whether the model puts "
+                 "clusters in the right order, ignoring how far apart it thinks they are."),
+    ("Held out", "Scored on clusters the model never saw while training. Scores measured any "
+                 "other way are not trustworthy."),
+    ("Seed", "One complete training run with a different random start and a different "
+             "train/test split. %d were run; the spread between them is the error bar."
+             % len(cfg.get("SEEDS", []) or [])),
+    ("λ (lambda)", "The price charged to the policy for each square it buys. Higher λ, less "
+                   "imagery bought."),
+    ("REINFORCE", "The reinforcement-learning method used: try something, see the reward, "
+                  "nudge the network towards whatever scored better."),
+    ("mAP@50", "The standard score for an object detector: how well its boxes match real "
+               "objects. %s here, on the xView benchmark." % f(dr.get("map50"))),
+    ("xView", "A large public dataset of labelled overhead imagery, used to teach the "
+              "detector what buildings and vehicles look like from above."),
+    ("SHAP", "A method for asking how much each input contributed to a prediction."),
+]
+
+def glossary_html():
+    return ('<dl class="glossary">'
+            + "".join(f"<dt>{esc(t)}</dt><dd>{esc(d)}</dd>" for t, d in GLOSSARY)
+            + "</dl>")
+
 # ─────────────────────────────────────────────────────────────── static figures
 # Inline SVG, no script: the page has to render identically for a browser, a crawler and a
 # `curl | sed`. Marks follow one spec throughout -- <=24px bars with a 4px rounded data-end
@@ -841,6 +952,8 @@ def fig_map():
                  f'stroke-width="1.2">{tip(t)}</circle>')
     # sequential scale legend: one hue, light → dark, with its ends labelled beside it
     rx0 = PAD + 24
+    o.append(f'<rect x="0" y="{H - 44}" width="{W}" height="44" fill="{SURFACE}" '
+             f'fill-opacity="0.92"/>')
     o.append(f'<text class="axtext" x="{PAD}" y="{H - 30}">consumption (pc_cons)</text>')
     for i in range(7):
         o.append(f'<rect x="{rx0 + i * 15}" y="{H - 24}" width="13" height="8" rx="2" '
@@ -919,7 +1032,24 @@ def fig_shap(n=14):
 
 def fig_examples(n=3):
     """A few clusters, with the acquisition mask drawn over the two images."""
-    picks = sorted([c for c in clusters if sum(c.get("mask") or [])], key=lambda c: -c["hr_frac"])[:n]
+    # Sorting by "bought the most" surfaces the clusters where the policy simply bought
+    # everything, which shows nothing. What is worth looking at is a partial buy that still
+    # caught most of the objects, one of each settlement type, plus one it declined outright.
+    def caught(c):
+        full = sum(c.get("counts_full") or []) or 1
+        return sum(c.get("counts_selected") or []) / full
+
+    cand = [c for c in clusters
+            if 4 <= sum(c.get("mask") or []) <= 0.45 * (grid.get("subtiles") or 256)
+            and sum(c.get("counts_full") or []) >= 150]
+    cand.sort(key=lambda c: -caught(c))
+    picks, seen = [], set()
+    for c in cand:                                   # one urban, one rural, then the best left
+        if c["urban"] not in seen:
+            picks.append(c)
+            seen.add(c["urban"])
+    picks += [c for c in cand if c not in picks][:max(0, n - len(picks))]
+    picks = picks[:n]
     zero = [c for c in clusters if not sum(c.get("mask") or [])]
     zero = sorted(zero, key=lambda c: -sum(c.get("counts_full") or []))[:1]
     G = grid.get("side") or 16
@@ -935,7 +1065,7 @@ def fig_examples(n=3):
                              f'stroke-width="0.09"/>')
             else:
                 cells.append(f'<rect x="{col}" y="{r}" width="1" height="1" '
-                             f'fill="var(--surface-0)" fill-opacity="0.76"/>')
+                             f'fill="var(--surface-0)" fill-opacity="0.62"/>')
         overlay = (f'<svg class="overlay" viewBox="0 0 {G} {G}" preserveAspectRatio="none">'
                    + "".join(cells) + "</svg>")
         out.append(
@@ -947,10 +1077,10 @@ def fig_examples(n=3):
             f'{num(sum(c["counts_full"]))} objects</span></div>'
             f'<div class="imgrow">'
             f'<figure><figcaption>Sentinel-2 <span class="tag">free</span></figcaption>'
-            f'<div class="imgwrap"><img loading="lazy" src="data/{c["lr_img"]}" '
+            f'<div class="imgwrap"><img src="data/{c["lr_img"]}" '
             f'alt="Sentinel-2 image of cluster {c["cid"]}"></div></figure>'
             f'<figure><figcaption>High resolution <span class="tag tag-cost">costly</span>'
-            f'</figcaption><div class="imgwrap"><img loading="lazy" src="data/{c["hr_img"]}" '
+            f'</figcaption><div class="imgwrap"><img src="data/{c["hr_img"]}" '
             f'alt="High-resolution image of cluster {c["cid"]}, with the acquired subtiles '
             f'outlined">{overlay}</div></figure>'
             f'</div></div>')
@@ -978,9 +1108,11 @@ def html_report():
     a('<p class="muted">'
       + " · ".join(f'<a href="{u}">{esc(n)}</a>' for n, u in LINKS) + "</p>")
     a(f"<p>{ABSTRACT}</p>")
-    a('<p class="muted">This tab is static HTML: the numbers below are baked in at deploy '
-      "time, so anything that reads the page without running JavaScript still sees the whole "
-      "report. The Map and Results tabs render the same data interactively.</p>")
+    a(plain_intro())
+    a('<p class="muted">This page runs no JavaScript. Every number, table and figure below '
+      "is written into the HTML when the site is built, so it reads the same in a browser, in "
+      "a crawler, and in <code>curl</code>. Hovering a bar, line or point shows its exact "
+      "value.</p>")
 
     a("<h3>Headline numbers</h3>")
     a(T["headline"].html())
@@ -997,6 +1129,7 @@ def html_report():
       + ("" if ALLCLS_DIFFERS else " The paper's third variant, counts over all detector "
          "classes, is identical here — every class the detector can emit is already a "
          "feature class — so it is omitted rather than repeated.") + "</p>")
+    a(reads("methods"))
     for t in TARGETS:
         a(f"<h4>Target: {TARGET_LABEL.get(t, t)}</h4>")
         a(fig_methods(t))
@@ -1010,13 +1143,16 @@ def html_report():
           f'{cfg.get("SWEEP_SEEDS")} seed × {cfg.get("SWEEP_EPOCHS")} epochs per point, so '
           "these are noisier than the table above. Read the counts-only column: it is "
           "monotone in how much imagery gets bought.</p>")
+        a(reads("sweep"))
         a(fig_sweep())
         a(T["sweep"].html())
 
     a('<h3 id="training">How the policy trains</h3>')
+    a(reads("curves"))
     a(fig_curves())
 
     a('<h3 id="predictions">Predictions and where they land</h3>')
+    a(reads("predictions"))
     a('<div class="fig-pair">' + fig_scatter() + fig_map() + "</div>")
     a(f'<p class="cap">Left: held-out predictions against the survey value for the '
       f'{len(oof)} clusters that were in a test split, pooled over seeds; the diagonal is '
@@ -1024,6 +1160,7 @@ def html_report():
       f'Right: the {len(clusters)} clusters in place, shaded by measured consumption.</p>')
 
     a('<h3 id="examples">What the policy actually buys</h3>')
+    a(reads("examples"))
     a(fig_examples())
 
     if "detector" in T:
@@ -1047,11 +1184,13 @@ def html_report():
         a('<p class="muted">Objects per cluster the detector would have found in the dropped '
           "subtiles — the paper's Fig. 3 analogue. Recall is per class, over the acquired "
           "subtiles only.</p>")
+        a(reads("recall"))
         a(fig_recall())
         a(T["missed"].html())
 
     if "shap" in T:
         a('<h3 id="shap">Feature importance (TreeSHAP, counts + LR regressor)</h3>')
+        a(reads("shap"))
         a(fig_shap())
         a("<details><summary>All " + str(len(shap)) + " features</summary>"
           + T["shap"].html() + "</details>")
@@ -1070,6 +1209,9 @@ def html_report():
 
     a("<h3>Run configuration</h3>")
     a("<details><summary>Every config key</summary>" + T["config"].html() + "</details>")
+
+    a('<h3 id="glossary">Glossary</h3>')
+    a(glossary_html())
 
     a("<h3>Files published next to this page</h3><ul>")
     for path, what in FILES:
@@ -1096,10 +1238,10 @@ def strip_tags(s):
     s = re.sub(r"<[^>]+>", "", s)
     return re.sub(r"\n{3,}", "\n\n", html.unescape(s)).strip()
 
-NAV_ITEMS = [("Findings", "#findings"), ("Accuracy", "#accuracy"), ("Cost", "#cost"),
-             ("Training", "#training"), ("Predictions", "#predictions"),
+NAV_ITEMS = [("Start here", "#plain"), ("Findings", "#findings"), ("Accuracy", "#accuracy"),
+             ("Cost", "#cost"), ("Training", "#training"), ("Predictions", "#predictions"),
              ("Examples", "#examples"), ("Detector", "#detector"), ("Method", "#method"),
-             ("Caveats", "#caveats"), ("Clusters", "#clusters")]
+             ("Caveats", "#caveats"), ("Glossary", "#glossary"), ("Clusters", "#clusters")]
 
 def nav_html():
     return ('<nav class="tabs" aria-label="Sections">'
@@ -1127,6 +1269,10 @@ def markdown_report():
     a("")
     a(strip_tags(ABSTRACT))
     a("")
+    a("## Start here — what this is, without the jargon")
+    a("")
+    a(strip_tags(plain_intro()).split("\n", 1)[1].strip())
+    a("")
     a("## Headline numbers")
     a("")
     a(T["headline"].md())
@@ -1137,6 +1283,8 @@ def markdown_report():
         a(f"{i}. {v}")
         a("")
     a("## Accuracy by acquisition policy and feature variant")
+    a("")
+    a("*In plain terms: " + READS["methods"] + "*")
     a("")
     a(f"Pearson r² on the held-out split, mean over {n_seeds} seeds. Every policy is given the "
       "same tile budget the learned policy used.")
@@ -1152,6 +1300,8 @@ def markdown_report():
         a("")
     if "sweep" in T:
         a("## Cost / accuracy trade-off")
+        a("")
+        a("*In plain terms: " + READS["sweep"] + "*")
         a("")
         a(f"λ is the cost coefficient in R_cost; {cfg.get('SWEEP_SEEDS')} seed × "
           f"{cfg.get('SWEEP_EPOCHS')} epochs per point.")
@@ -1178,10 +1328,14 @@ def markdown_report():
     if "missed" in T:
         a("## What the policy chooses not to look at")
         a("")
+        a("*In plain terms: " + READS["recall"] + "*")
+        a("")
         a(T["missed"].md())
         a("")
     if "shap" in T:
         a("## Feature importance (TreeSHAP, counts + LR regressor)")
+        a("")
+        a("*In plain terms: " + READS["shap"] + "*")
         a("")
         a(T["shap"].md())
         a("")
@@ -1204,6 +1358,11 @@ def markdown_report():
     a("## Run configuration")
     a("")
     a(T["config"].md())
+    a("")
+    a("## Glossary")
+    a("")
+    for term, definition in GLOSSARY:
+        a(f"- **{term}** — {definition}")
     a("")
     a("## Files")
     a("")
