@@ -1137,7 +1137,7 @@ def html_report():
     a = p.append
     a('<main id="view-report" class="view">')
     a('<article class="paper" id="report">')
-    a('<header class="masthead">')
+    a('<header class="masthead centered">')
     a('<p class="eyebrow">Reproduction · AAAI 2021</p>')
     a(f"<h2>{esc(PAPER.get('title', 'Run report'))}</h2>")
     a(f'<p class="byline">Reimplemented and run by {esc(AUTHOR)} · '
@@ -1291,8 +1291,14 @@ def nav_html():
             + "</nav>")
 
 def foot_html():
-    return (f'<span>{D.get("n_clusters")} clusters · {grid.get("subtiles")} HR subtiles each '
-            f'· run {esc(D.get("generated", ""))}</span> <span>'
+    first = PAPER.get("authors", "").split(",")[0].strip()
+    return (f'<span class="foot-meta">A reproduction of {esc(first)} et al., '
+            f'{esc(PAPER.get("venue", ""))} — code, data assembly and runs by {esc(AUTHOR)}'
+            f'</span>'
+            f'<span class="foot-meta">{D.get("n_clusters")} clusters · '
+            f'{grid.get("subtiles")} HR subtiles each · run {esc(D.get("generated", ""))}'
+            f'</span>'
+            '<span class="foot-links">'
             + " · ".join(f'<a href="{u}">{esc(n)}</a>' for n, u in LINKS)
             + ' · <a href="report.md">report.md</a> · <a href="llms.txt">llms.txt</a>'
               ' · <a href="data/data.json">data.json</a>'
