@@ -187,7 +187,7 @@ figure.fig figcaption{max-width:var(--col);margin-left:auto;margin-right:auto}
 .ex-head{justify-content:center;text-align:center}
 .examples > .cap{max-width:var(--col);margin-left:auto;margin-right:auto}
 #report h3{margin-top:54px;padding-top:26px;border-top:1px solid var(--border)}
-#report h4{margin:26px 0 .35em;color:var(--text-secondary)}
+#report h4{margin-top:30px;margin-bottom:.4em;color:var(--text-secondary)}
 #report ol > li{margin-bottom:1em}
 #report details{margin-top:14px}
 #report summary{cursor:pointer;font-size:14px;color:var(--text-muted);padding:7px 0;
