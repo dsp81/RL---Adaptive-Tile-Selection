@@ -13,6 +13,8 @@
   --div-lo:#2a78d6; --div-mid:#f0efec; --div-hi:#e34948;
   --shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.06);
   --r:10px;
+  --col:900px;        /* reading column */
+  --col-wide:1160px;  /* tables, figures, images */
 }
 @media (prefers-color-scheme: dark){
   :root:where(:not([data-theme="light"])){
@@ -110,9 +112,28 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
    figures, so it gets its own rhythm rather than the card defaults. */
 #view-report{max-width:1240px;margin:0 auto;width:100%;padding:26px 24px 48px}
 #report{margin:0 auto}
-/* Tables and figures get the full column; running text keeps a readable measure. */
-#report p,#report li,#report summary{max-width:104ch}
-#report ol,#report ul{max-width:none}
+
+/* Everything sits in one of two centred columns: a narrow one for reading, a wide one for
+   tables, figures and images. Both are centred in the card, so nothing hugs the left edge
+   with an empty gutter beside it. Running text keeps a comfortable measure rather than
+   stretching the full width — long lines are hard to track back to. */
+#report > h2,#report > h3,#report > h4,#report > p,#report > ol,#report > ul,#report > dl,
+#report > section.plain,#report > .reads,#report > details > summary{
+  max-width:var(--col);margin-left:auto;margin-right:auto}
+#report > .tablewrap,#report > figure.fig,#report > .fig-pair,#report > .examples,
+#report > details,#report > .ex{max-width:var(--col-wide);margin-left:auto;margin-right:auto}
+#report > .tablewrap.narrow,#report details .tablewrap.narrow{max-width:var(--col);
+  margin-left:auto;margin-right:auto}
+#report li,#report summary,.plain p,.plain li,.reads{max-width:none}
+
+/* and the marks inside them */
+.fig svg,.fig > svg{display:block;margin-left:auto;margin-right:auto}
+figure.fig figcaption{max-width:var(--col);margin-left:auto;margin-right:auto}
+.legend-row{justify-content:center}
+.fig-pair{justify-content:center}
+.ex .imgrow{justify-content:center}
+.ex-head{justify-content:center;text-align:center}
+.examples > .cap{max-width:var(--col);margin-left:auto;margin-right:auto}
 #report h3{margin-top:26px;padding-top:16px;border-top:1px solid var(--border);font-size:15px}
 #report h4{margin:18px 0 .3em;font-size:13.5px;color:var(--text-secondary)}
 #report > p:first-of-type + p{color:var(--text-secondary)}
@@ -126,7 +147,9 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
 
 .tablewrap{overflow-x:auto;margin-top:12px}
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
-th,td{text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+th,td{text-align:right;padding:7px 10px;border-bottom:1px solid var(--border)}
+td{white-space:normal}
+thead th{white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 thead th{color:var(--text-muted);font-size:11.5px;font-weight:600;letter-spacing:.02em}
 tbody tr:hover{background:var(--surface-2)}

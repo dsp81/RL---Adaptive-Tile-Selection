@@ -74,9 +74,10 @@ TARGET_LABEL = {"pc_cons": "consumption (pc_cons)",
 class Table:
     """One table, rendered twice: HTML and Markdown."""
 
-    def __init__(self, headers, rows, highlight=None):
+    def __init__(self, headers, rows, highlight=None, narrow=False):
         self.headers, self.rows = headers, rows
         self.highlight = highlight or (lambda r: False)
+        self.narrow = narrow            # two-column key/value tables sit in the text column
 
     def html(self):
         head = "".join(f"<th>{esc(h)}</th>" for h in self.headers)
@@ -84,7 +85,8 @@ class Table:
         for r in self.rows:
             cls = ' class="is-hi"' if self.highlight(r) else ""
             body.append(f"<tr{cls}>" + "".join(f"<td>{esc(c)}</td>" for c in r) + "</tr>")
-        return ('<div class="tablewrap"><table><thead><tr>' + head
+        return (f'<div class="tablewrap{" narrow" if self.narrow else ""}">'
+                "<table><thead><tr>" + head
                 + "</tr></thead><tbody>" + "".join(body) + "</tbody></table></div>")
 
     def md(self):
@@ -360,7 +362,7 @@ T["headline"] = Table(
      ["Out-of-fold RMSE", f(oof_rmse, 2)],
      ["Protocol", f"{n_seeds} seeds × {100 - test_pct}/{test_pct} splits "
                   f"(~{test_n} clusters held out per seed), Pearson r² on the held-out split"],
-     ["Run generated", D.get("generated", "—")]])
+     ["Run generated", D.get("generated", "—")]], narrow=True)
 
 # "all detector classes + LR" only differs from "counts + LR" when the detector fires classes
 # that are not feature classes. When they coincide, the column is a duplicate; drop it.
@@ -448,7 +450,7 @@ if shap:
 T["config"] = Table(
     ["Key", "Value"],
     [[k, ", ".join(str(x) for x in v) if isinstance(v, list) else str(v)]
-     for k, v in cfg.items()])
+     for k, v in cfg.items()], narrow=True)
 
 T["deviations"] = Table(
     ["Ayush et al. (AAAI 2021)", "This run"],
@@ -467,7 +469,7 @@ T["deviations"] = Table(
       "same (pc_cons)" + (", plus log consumption (Jean et al. 2016 convention)"
                           if HAS_LOG else "")],
      ["Regressor unspecified beyond f_r",
-      "gradient-boosted trees (300 × depth 3, lr 0.05, subsample 0.8)"]])
+      "gradient-boosted trees (300 × depth 3, lr 0.05, subsample 0.8)"]], narrow=True)
 
 T["clusters"] = Table(
     ["Cluster", "Lat", "Lon", "Settlement", "Households", "True pc_cons", "Predicted",
