@@ -4,6 +4,14 @@
 
 Headline: the learned policy buys 13.7% of the high-resolution imagery and recovers 70.7% of the objects on the full grid. Pearson r² on held-out clusters is 0.033 from acquired object counts alone, 0.314 once the free Sentinel-2 descriptors are added, 0.326 from those descriptors alone, and 0.125 from counts over every subtile. The acquisition policy works; the high-resolution counts add nothing measurable beyond the free image.
 
+## Links
+
+- [Site](https://dsp81.github.io/RL---Adaptive-Tile-Selection/): this report as a static page.
+- [Code and project](https://github.com/dsp81/RL---Adaptive-Tile-Selection)
+- [Kaggle notebook — pipeline](https://www.kaggle.com/code/digvijaysinghparihar/povrl-adaptive-hr-tile-selection)
+- [Kaggle notebook — xView detector](https://www.kaggle.com/code/digvijaysinghparihar/povrl-xview-yolov3)
+- [Paper (AAAI 2021)](https://ojs.aaai.org/index.php/AAAI/article/view/16072)
+
 ## Docs
 
 - [Full report (Markdown)](report.md): every table, figure caption and caveat from the run, as text.

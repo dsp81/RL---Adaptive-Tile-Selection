@@ -1,68 +1,59 @@
-<!-- This branch is the deployed site, not project history. -->
-# Adaptive HR Tile Selection — deployed viewer (`gh-pages`)
+# Adaptive HR Tile Selection — report site
 
-This branch holds **only the built static site** served at
-<https://dsp81.github.io/RL---Adaptive-Tile-Selection/>. The project itself lives on `main`.
-Regenerate it with `python prerender.py` after refreshing `data/`.
-
-Static site (no build step, no framework, no API keys) for the Kaggle run of the AAAI-2021
-adaptive high-resolution tile acquisition method on the Uganda LSMS poverty dataset.
+The Kaggle run, rendered as one static page. **No JavaScript at all**: every number, table
+and figure is written into `index.html` by `prerender.py`, so the page renders identically
+for a browser, a crawler, an LLM fetcher and `curl`.
 
 ```
-index.html      shell + the prerendered Findings report (between the PRERENDER markers)
-app.js          map, charts and the per-cluster detail panel, from data/data.json
-style.css       tokens, light/dark, layout
-prerender.py    bakes data/data.json into static HTML, report.md, llms.txt, clusters.csv
-netlify.toml    publish dir + content types (so .md serves as text, not a download)
-report.md       generated — the whole run as Markdown
+index.html      generated — the whole report (do not hand-edit between the PRERENDER markers)
+prerender.py    the generator: data/data.json -> index.html, report.md, llms.txt, clusters.csv
+style.css       tokens, light/dark, layout; figures inherit the colour tokens
+report.md       generated — the report as Markdown
 llms.txt        generated — llmstxt.org index
 robots.txt      generated — explicit allow
 data/           the Kaggle run's frontend_assets.zip, unzipped
-vendor/leaflet  vendored, not CDN-loaded: a slow CDN would otherwise stall the parser
 ```
 
-## Deploy
+## Rebuild and deploy
 
 ```sh
-../fetch_results.sh     # downloads the run, unzips into data/, prerenders the report
-python prerender.py     # only if you edited data/ or the template by hand
+../fetch_results.sh          # download the run into data/ and prerender (does both)
+python prerender.py          # or just re-render after editing the generator
 ```
 
-Then **drag this folder onto <https://app.netlify.com/drop>**. Nothing to install, and
-`netlify.toml` travels with the folder, so the content-type headers apply.
+Published from the `gh-pages` branch of the project repo:
 
-The CLI route (`npx netlify-cli deploy --prod --dir=.`) does not work on this machine as
-set up: netlify-cli now requires Node ≥ 20, the system Node is 10 (with an npm that refuses
-to run on it), and the `nodejs-bin` pip package here is 18.4. Install Node 20+ first if you
-want the CLI.
+```sh
+git checkout gh-pages && cp -r ~/povrl/frontend/. . && touch .nojekyll
+git add -A && git commit && git push
+```
+
+## Figures
+
+Charts are inline SVG emitted by `prerender.py`, filled with the CSS custom properties from
+`style.css` — so light and dark mode need no second palette and no script. Marks follow one
+spec: bars ≤24px with a 4px rounded data-end and a 2px surface gap, 2px lines, ≥8px markers
+with a 2px surface ring, hairline solid gridlines. The categorical pair (`--series-1` /
+`--series-2`) passes the six-check colour validation — lightness band, chroma floor, CVD
+separation, normal-vision floor, contrast — against both surfaces. Every mark carries an SVG
+`<title>`, which browsers show as a tooltip without any JavaScript.
+
+There is no hover/crosshair layer and no map tiles, because there is no script; anything a
+tooltip would have told you is also in the table under each figure.
 
 ## Readable without JavaScript
 
-The Findings tab is not rendered by `app.js` — `prerender.py` writes it into `index.html` as
-plain HTML, tables and all, and the tab is the page's landing view. So a crawler, an LLM
-fetcher, a chat unfurl or `curl https://<site>/` sees the entire report (~42k characters of
-text, every number, every table) without executing a line of script. The interactive tabs
-render the same `data/data.json` on top.
+~42,000 characters of extractable text, plus JSON-LD `Dataset` metadata in `<head>`. Machine
+entry points, in ascending order of detail: `/llms.txt`, `/report.md`, `/`,
+`/data/clusters.csv`, `/data/data.json`.
 
-Three redundant entry points, in descending order of how much a machine has to parse:
-
-| URL | What it is |
-|---|---|
-| `/llms.txt` | short index: headline numbers, then links to everything else |
-| `/report.md` | the whole report as Markdown, served as `text/markdown` |
-| `/` | the report as static HTML, plus JSON-LD `Dataset` metadata in `<head>` |
-| `/data/data.json` | the run itself: config, metrics, detector report, SHAP, per-cluster masks |
-| `/data/clusters.csv` | per-cluster predictions and budget spent, flat |
-
-**Never hand-edit `index.html` between the `PRERENDER` markers**, or the next
-`prerender.py` run will overwrite it. Edit the generator instead — the prose in there is
-parameterised from the numbers, so a new run cannot leave a stale claim on the page.
+`netlify.toml` is kept for the drag-and-drop Netlify path; GitHub Pages ignores it and gets
+the content types right on its own.
 
 ## Local preview
 
 ```sh
-python -m http.server 8000     # then open http://localhost:8000
+python -m http.server 8000     # http://localhost:8000
 ```
 
-Opening `index.html` from disk works for the Findings tab but not the interactive ones:
-browsers block `fetch()` on `file://`, and the page says so when it happens.
+Opening `index.html` straight off disk also works now — nothing fetches anything.

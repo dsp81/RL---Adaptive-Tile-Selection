@@ -2,6 +2,12 @@
 
 *Reimplementation of Ayush, Uzkent, Tanmay, Burke, Lobell, Ermon, “Efficient Poverty Mapping from High Resolution Remote Sensing Images”, AAAI 2021. Generated from `data/data.json`; run 2026-09-16T20:42:15Z.*
 
+- Site: https://dsp81.github.io/RL---Adaptive-Tile-Selection/
+- Code and project: https://github.com/dsp81/RL---Adaptive-Tile-Selection
+- Kaggle notebook — pipeline: https://www.kaggle.com/code/digvijaysinghparihar/povrl-adaptive-hr-tile-selection
+- Kaggle notebook — xView detector: https://www.kaggle.com/code/digvijaysinghparihar/povrl-xview-yolov3
+- Paper (AAAI 2021): https://ojs.aaai.org/index.php/AAAI/article/view/16072
+
 A from-scratch reimplementation of Ayush, Uzkent, Tanmay, Burke, Lobell, Ermon, “Efficient Poverty Mapping from High Resolution Remote Sensing Images”, AAAI 2021. A policy network sees only the free Sentinel-2 image of a survey cluster and decides which of its 256 high-resolution subtiles are worth paying for; a frozen YOLOv3 detector runs on the acquired subtiles only; a gradient-boosted regressor predicts cluster mean consumption from what came back. Trained with REINFORCE and a self-critical baseline on 318 Uganda LSMS clusters over 7 seeds, each with its own held-out 20%. Every number on this page is read straight out of data/data.json, produced by one Kaggle run on 2026-09-16.
 
 ## Headline numbers

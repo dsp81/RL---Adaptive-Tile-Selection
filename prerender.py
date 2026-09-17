@@ -45,6 +45,12 @@ def esc(s):
 def signed(v, d=3):
     return "—" if v is None else ("+" if v >= 0 else "−") + f(abs(v), d)
 
+FIG_LABEL = {
+    "rl": "RL policy (ours)", "rl_matched": "RL, matched training",
+    "no_dropping": "No dropping (all)", "fixed_center": "Fixed centre",
+    "random": "Random", "stochastic": "Stochastic", "green_tiles": "Green tiles",
+    "counts_pred": "Counts CNN", "lr_only": "LR only",
+}
 METHOD_LABEL = {
     "rl": "RL policy (ours)",
     "rl_matched": "RL policy (matched training)",
@@ -188,6 +194,15 @@ DET_IS_XVIEW = D.get("detector") == "xview"
 PAPER = D.get("paper", {})
 PAPER_LINE = (f"{PAPER.get('authors', '')}, “{PAPER.get('title', '')}”, {PAPER.get('venue', '')}")
 run_date = (D.get("generated") or "")[:10]
+SITE = "https://dsp81.github.io/RL---Adaptive-Tile-Selection/"
+LINKS = [
+    ("Code and project", "https://github.com/dsp81/RL---Adaptive-Tile-Selection"),
+    ("Kaggle notebook — pipeline",
+     "https://www.kaggle.com/code/digvijaysinghparihar/povrl-adaptive-hr-tile-selection"),
+    ("Kaggle notebook — xView detector",
+     "https://www.kaggle.com/code/digvijaysinghparihar/povrl-xview-yolov3"),
+    ("Paper (AAAI 2021)", "https://ojs.aaai.org/index.php/AAAI/article/view/16072"),
+]
 n_seeds = len(cfg.get("SEEDS", []) or [])
 test_pct = int(100 * (cfg.get("TEST_FRAC") or 0.2))
 test_n = int(round((cfg.get("TEST_FRAC") or 0.2) * (D.get("n_clusters") or 0)))
@@ -551,6 +566,400 @@ FILES = [
     ("data/clusters/<cid>_hr.jpg", "high-resolution thumbnail, one per cluster"),
 ]
 
+# ─────────────────────────────────────────────────────────────── static figures
+# Inline SVG, no script: the page has to render identically for a browser, a crawler and a
+# `curl | sed`. Marks follow one spec throughout -- <=24px bars with a 4px rounded data-end
+# and a 2px surface gap, 2px lines, >=8px markers with a 2px surface ring, hairline solid
+# gridlines. Colours are CSS custom properties, so light/dark theming is inherited from
+# style.css instead of being baked in (the pair #2a78d6/#eb6834 and its dark-mode steps pass
+# the six-check palette validation in both modes). Each mark carries a <title>, which browsers
+# render as a native tooltip with no JavaScript at all.
+
+S1, S2 = "var(--series-1)", "var(--series-2)"
+SURFACE = "var(--surface-1)"
+INK_MUTED = "var(--text-muted)"
+
+def xml(s):
+    return html.escape(str(s), quote=True)
+
+def nice_max(v):
+    if v <= 0:
+        return 1.0
+    p = 10 ** math.floor(math.log10(v))
+    n = v / p
+    for step in (1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10):
+        if n <= step:
+            return step * p
+    return 10 * p
+
+def nice_axis(vmax, ticks=4, vmin=0.0):
+    """Round the range out so every tick lands on a round number."""
+    step = nice_max((vmax - vmin) / ticks)
+    lo = math.floor(vmin / step) * step if vmin < 0 else 0.0
+    hi = lo + step * ticks
+    while hi < vmax - 1e-12:
+        hi += step
+    return lo, hi
+
+def tip(text):
+    return f"<title>{xml(text)}</title>"
+
+def bar_path(x, y, w, h, r=4, horizontal=False):
+    """Bar with a rounded data-end and a square baseline end."""
+    r = max(0, min(r, (w if horizontal else h) / 2, (h if horizontal else w) / 2))
+    if horizontal:                                  # grows left → right
+        return (f"M{x},{y} H{x + w - r} A{r},{r} 0 0 1 {x + w},{y + r} "
+                f"V{y + h - r} A{r},{r} 0 0 1 {x + w - r},{y + h} H{x} Z")
+    return (f"M{x},{y + h} V{y + r} A{r},{r} 0 0 1 {x + r},{y} "
+            f"H{x + w - r} A{r},{r} 0 0 1 {x + w},{y + r} V{y + h} Z")
+
+def svg_open(w, h, label):
+    return (f'<svg viewBox="0 0 {w} {h}" width="{w}" height="{h}" role="img" '
+            f'aria-label="{xml(label)}" style="width:100%;height:auto;max-width:{w}px">')
+
+def figure(body, caption, legend=None):
+    lg = ""
+    if legend:
+        lg = ('<div class="legend-row">' + "".join(
+            f'<span><i class="swatch" style="background:{c}"></i>{esc(n)}</span>'
+            for n, c in legend) + "</div>")
+    return (f'<figure class="fig">{lg}{body}'
+            f'<figcaption class="cap">{caption}</figcaption></figure>')
+
+def y_grid(x0, x1, y_top, y_bot, vmax, ticks=4, fmt=lambda v: f"{v:.2f}", vmin=0.0):
+    out = []
+    for i in range(ticks + 1):
+        v = vmin + (vmax - vmin) * i / ticks
+        y = y_bot - (y_bot - y_top) * i / ticks
+        out.append(f'<line class="ax" x1="{x0}" x2="{x1}" y1="{y:.1f}" y2="{y:.1f}"/>')
+        out.append(f'<text class="axtext" x="{x0 - 7}" y="{y + 3.5:.1f}" '
+                   f'text-anchor="end">{fmt(v)}</text>')
+    return "".join(out)
+
+def x_grid(y0, y1, x_left, x_right, vmax, ticks=4, fmt=lambda v: f"{v:.2f}", vmin=0.0):
+    out = []
+    for i in range(ticks + 1):
+        v = vmin + (vmax - vmin) * i / ticks
+        x = x_left + (x_right - x_left) * i / ticks
+        out.append(f'<line class="ax" y1="{y0}" y2="{y1}" x1="{x:.1f}" x2="{x:.1f}"/>')
+        out.append(f'<text class="axtext" x="{x:.1f}" y="{y1 + 15}" '
+                   f'text-anchor="middle">{fmt(v)}</text>')
+    return "".join(out)
+
+def fig_methods(target):
+    """Horizontal grouped bars: r² per acquisition policy, two feature variants."""
+    piv = PIV.get(target, {})
+    order = ["rl", "rl_matched", "no_dropping", "counts_pred", "green_tiles", "fixed_center",
+             "stochastic", "random"]
+    rows = [(m, piv[m]) for m in order if m in piv]
+    lr_only_v = cell(target, "lr_only", "lr_only")
+    W, PADL, PADR, PADT = 760, 150, 58, 26
+    rowh, barh, gap = 40, 15, 2
+    H = PADT + rowh * len(rows) + 52
+    x0, x1 = PADL, W - PADR
+    _, vmax = nice_axis(1.06 * max([r.get("counts_plus_lr") or 0 for _, r in rows]
+                                   + [lr_only_v or 0, 0.05]))
+    o = [svg_open(W, H, f"Pearson r squared by acquisition policy, target {target}")]
+    o.append(x_grid(PADT, PADT + rowh * len(rows), x0, x1, vmax))
+    for i, (m, r) in enumerate(rows):
+        ytop = PADT + i * rowh
+        o.append(f'<text class="lbl" x="{x0 - 10}" y="{ytop + rowh / 2 + 4:.0f}" '
+                 f'text-anchor="end">{esc(FIG_LABEL.get(m, m))}</text>')
+        for k, (key, colour, name) in enumerate(
+                [("counts_only", S1, "counts only"), ("counts_plus_lr", S2, "counts + LR")]):
+            v = r.get(key)
+            if v is None:
+                continue
+            y = ytop + (rowh - 2 * barh - gap) / 2 + k * (barh + gap)
+            w = max(1.5, (x1 - x0) * v / vmax)
+            t = f"{METHOD_LABEL.get(m, m)} — {name}: r² {v:.3f}"
+            o.append(f'<path d="{bar_path(x0, y, w, barh, 4, True)}" fill="{colour}">'
+                     f'{tip(t)}</path>')
+            if m == "rl" or (m == "no_dropping" and key == "counts_only"):
+                o.append(f'<text class="vlbl" x="{x0 + w + 6:.1f}" y="{y + barh - 3:.0f}">'
+                         f'{v:.3f}</text>')
+    if lr_only_v is not None:
+        lx = x0 + (x1 - x0) * lr_only_v / vmax
+        ybot = PADT + rowh * len(rows)
+        o.append(f'<line x1="{lx:.1f}" x2="{lx:.1f}" y1="{PADT - 10}" y2="{ybot}" '
+                 f'stroke="{INK_MUTED}" stroke-width="1.5" opacity="0.85">'
+                 f'<title>LR only, nothing bought: r² {lr_only_v:.3f}</title></line>')
+        near_edge = lx > x0 + 0.66 * (x1 - x0)
+        o.append(f'<text class="axtext" x="{lx + (-4 if near_edge else 4):.1f}" '
+                 f'y="{PADT - 14}" text-anchor="{"end" if near_edge else "start"}">'
+                 f'LR only, nothing bought — {lr_only_v:.3f}</text>')
+    o.append(f'<text class="lbl" x="{(x0 + x1) / 2:.0f}" y="{H - 6}" text-anchor="middle">'
+             f'Pearson r² on the held-out split</text>')
+    o.append("</svg>")
+    return figure(
+        "".join(o),
+        f"Target: {TARGET_LABEL.get(target, target)}. Every policy is given the same tile "
+        f"budget the learned policy spent. The vertical rule is the regressor that buys "
+        f"nothing and sees only the free Sentinel-2 descriptors; no policy clears it.",
+        legend=[("counts only (Eq. 1 literal)", S1), ("counts + LR features", S2)])
+
+def fig_sweep():
+    if not sweep:
+        return ""
+    W, H, PADL, PADR, PADT, PADB = 760, 320, 58, 24, 18, 52
+    x0, x1, yt, yb = PADL, W - PADR, PADT, H - PADB
+    xs = [r["hr_frac"] for r in sweep]
+    _, xmax = nice_axis(max(xs))
+    _, ymax = nice_axis(1.12 * max(max(r.get("r2_counts_only") or 0,
+                                       r.get("r2_counts_plus_lr") or 0) for r in sweep))
+    X = lambda v: x0 + (x1 - x0) * v / xmax
+    Y = lambda v: yb - (yb - yt) * v / ymax
+    o = [svg_open(W, H, "r squared against the fraction of high-resolution imagery bought")]
+    o.append(y_grid(x0, x1, yt, yb, ymax))
+    o.append(x_grid(yt, yb, x0, x1, xmax, fmt=lambda v: f"{v * 100:.0f}%"))
+    pts = sorted(sweep, key=lambda r: r["hr_frac"])
+    for key, colour, name, dy in [("r2_counts_only", S1, "counts only", 16),
+                                  ("r2_counts_plus_lr", S2, "counts + LR", -11)]:
+        d = " ".join(f"{'M' if i == 0 else 'L'}{X(r['hr_frac']):.1f},{Y(r[key]):.1f}"
+                     for i, r in enumerate(pts))
+        o.append(f'<path d="{d}" fill="none" stroke="{colour}" stroke-width="2" '
+                 f'stroke-linejoin="round" stroke-linecap="round"/>')
+        for r in pts:
+            t = (f"lambda {r['lam']}: buys {r['hr_frac'] * 100:.1f}% of the imagery — "
+                 f"{name} r² {r[key]:.3f}")
+            o.append(f'<circle cx="{X(r["hr_frac"]):.1f}" cy="{Y(r[key]):.1f}" r="4.5" '
+                     f'fill="{colour}" stroke="{SURFACE}" stroke-width="2">'
+                     f'{tip(t)}</circle>')
+        last = pts[-1]
+        o.append(f'<text class="vlbl" x="{X(last["hr_frac"]) - 7:.1f}" '
+                 f'y="{Y(last[key]) + dy:.1f}" text-anchor="end">'
+                 f'{name} {last[key]:.3f}</text>')
+    for r in (pts[0], pts[-1]):
+        o.append(f'<text class="axtext" x="{X(r["hr_frac"]):.1f}" y="{yb + 30}" '
+                 f'text-anchor="middle">λ {r["lam"]}</text>')
+    o.append(f'<text class="lbl" x="{(x0 + x1) / 2:.0f}" y="{H - 6}" text-anchor="middle">'
+             f'fraction of high-resolution subtiles bought</text>')
+    o.append(f'<text class="lbl" x="14" y="{(yt + yb) / 2:.0f}" text-anchor="middle" '
+             f'transform="rotate(-90 14 {(yt + yb) / 2:.0f})">Pearson r²</text>')
+    o.append("</svg>")
+    return figure(
+        "".join(o),
+        f"Cost against accuracy, {cfg.get('SWEEP_SEEDS')} seed × {cfg.get('SWEEP_EPOCHS')} "
+        "epochs per point. The counts-only curve climbs with coverage; the counts + LR curve "
+        "barely moves, because the free image is already carrying it.",
+        legend=[("counts only", S1), ("counts + LR", S2)])
+
+def fig_curves():
+    curves = D.get("rl_curves") or {}
+    if not curves:
+        return ""
+    seeds = sorted(curves, key=lambda k: int(k))
+    panels = [("reward", "reward per episode", S1), ("hr_frac", "fraction bought", S2)]
+    W, H, PADL, PADR, PADT, PADB = 368, 258, 46, 16, 16, 60
+    out = []
+    for key, title, colour in panels:
+        x0, x1, yt, yb = PADL, W - PADR, PADT, H - PADB
+        epochs = [p["epoch"] for p in curves[seeds[0]]]
+        vals = [p[key] for s in seeds for p in curves[s]]
+        vmin, vmax = nice_axis(max(vals), vmin=min(vals + [0]))
+        X = lambda v: x0 + (x1 - x0) * (v / max(epochs) if max(epochs) else 0.5)
+        Y = lambda v: yb - (yb - yt) * (v - vmin) / (vmax - vmin or 1)
+        o = [svg_open(W, H, f"policy {title} per epoch, {len(seeds)} seeds")]
+        o.append(y_grid(x0, x1, yt, yb, vmax, fmt=lambda v: f"{v:.2f}", vmin=vmin))
+        o.append(x_grid(yt, yb, x0, x1, max(epochs), fmt=lambda v: f"{v:.0f}"))
+        if vmin < 0:
+            o.append(f'<line class="ax" x1="{x0}" x2="{x1}" y1="{Y(0):.1f}" y2="{Y(0):.1f}"/>')
+        for s in seeds:                              # every seed, de-emphasised
+            d = " ".join(f"{'M' if i == 0 else 'L'}{X(p['epoch']):.1f},{Y(p[key]):.1f}"
+                         for i, p in enumerate(curves[s]))
+            o.append(f'<path d="{d}" fill="none" stroke="{colour}" stroke-width="1.5" '
+                     f'stroke-opacity="0.32" stroke-linejoin="round"><title>seed {s}</title>'
+                     f'</path>')
+        mean = [sum(curves[s][i][key] for s in seeds) / len(seeds)
+                for i in range(len(curves[seeds[0]]))]
+        d = " ".join(f"{'M' if i == 0 else 'L'}{X(epochs[i]):.1f},{Y(v):.1f}"
+                     for i, v in enumerate(mean))
+        o.append(f'<path d="{d}" fill="none" stroke="{colour}" stroke-width="2" '
+                 f'stroke-linejoin="round"><title>mean over {len(seeds)} seeds</title></path>')
+        o.append(f'<text class="vlbl" x="{X(epochs[-1]):.1f}" y="{Y(mean[-1]) - 9:.1f}" '
+                 f'text-anchor="end">{mean[-1]:.2f}</text>')
+        o.append(f'<text class="lbl" x="{(x0 + x1) / 2:.0f}" y="{H - 22}" '
+                 f'text-anchor="middle">epoch</text>')
+        o.append(f'<text class="lbl" x="{(x0 + x1) / 2:.0f}" y="{H - 5}" '
+                 f'text-anchor="middle">{title}</text>')
+        o.append("</svg>")
+        out.append("".join(o))
+    return figure(
+        f'<div class="fig-pair">{out[0]}{out[1]}</div>',
+        f"One thin line per seed ({len(seeds)} of them), the solid line their mean. Two "
+        "measures of different scale, so two panels rather than two y-axes on one. Reward "
+        "climbs as temperature scaling anneals exploration into exploitation, and the "
+        "fraction bought falls out of the cost term rather than being set by hand.")
+
+def fig_scatter():
+    pts = [c for c in clusters if c.get("out_of_fold")]
+    if not pts:
+        return ""
+    W, H, PADL, PADR, PADT, PADB = 380, 380, 52, 18, 16, 48
+    x0, x1, yt, yb = PADL, W - PADR, PADT, H - PADB
+    _, m = nice_axis(max(max(c["y_true"], c["y_pred"]) for c in pts))
+    X = lambda v: x0 + (x1 - x0) * v / m
+    Y = lambda v: yb - (yb - yt) * v / m
+    o = [svg_open(W, H, "predicted against true consumption, held-out clusters")]
+    o.append(y_grid(x0, x1, yt, yb, m, fmt=lambda v: f"{v:.0f}"))
+    o.append(x_grid(yt, yb, x0, x1, m, fmt=lambda v: f"{v:.0f}"))
+    o.append(f'<line x1="{X(0):.1f}" y1="{Y(0):.1f}" x2="{X(m):.1f}" y2="{Y(m):.1f}" '
+             f'stroke="{INK_MUTED}" stroke-width="1.25" stroke-opacity="0.6"/>')
+    for c in pts:
+        t = (f"cluster {c['cid']} — true {c['y_true']:.2f}, "
+             f"predicted {c['y_pred']:.2f}")
+        o.append(f'<circle cx="{X(c["y_true"]):.1f}" cy="{Y(c["y_pred"]):.1f}" r="3.6" '
+                 f'fill="{S1}" fill-opacity="0.55" stroke="{SURFACE}" stroke-width="1.5">'
+                 f'{tip(t)}</circle>')
+    o.append(f'<text class="lbl" x="{(x0 + x1) / 2:.0f}" y="{H - 8}" text-anchor="middle">'
+             f'true pc_cons</text>')
+    o.append(f'<text class="lbl" x="14" y="{(yt + yb) / 2:.0f}" text-anchor="middle" '
+             f'transform="rotate(-90 14 {(yt + yb) / 2:.0f})">predicted</text>')
+    o.append("</svg>")
+    return "".join(o)
+
+def fig_map():
+    W, H, PAD = 380, 380, 26
+    lats = [c["lat"] for c in clusters]
+    lons = [c["lon"] for c in clusters]
+    la0, la1, lo0, lo1 = min(lats), max(lats), min(lons), max(lons)
+    span = max(la1 - la0, lo1 - lo0) * 1.04
+    cx, cy = (lo0 + lo1) / 2, (la0 + la1) / 2
+    X = lambda lon: PAD + (W - 2 * PAD) * (lon - (cx - span / 2)) / span
+    Y = lambda lat: H - PAD - (H - 2 * PAD) * (lat - (cy - span / 2)) / span
+    vals = sorted(c["y_true"] for c in clusters)
+    q = lambda p: vals[max(0, min(len(vals) - 1, int(p * (len(vals) - 1))))]
+    lo_v, hi_v = q(0.05), q(0.95)
+    step = lambda v: max(0, min(6, int(round(6 * (v - lo_v) / ((hi_v - lo_v) or 1)))))
+    o = [svg_open(W, H, "survey cluster locations, shaded by true consumption")]
+    for c in clusters:
+        t = (f"cluster {c['cid']} ({'urban' if c['urban'] else 'rural'}) — "
+             f"pc_cons {c['y_true']:.2f}, bought {int(sum(c['mask']))}/"
+             f"{grid.get('subtiles')} subtiles")
+        o.append(f'<circle cx="{X(c["lon"]):.1f}" cy="{Y(c["lat"]):.1f}" r="3.8" '
+                 f'fill="var(--seq-{step(c["y_true"]) + 1})" stroke="{SURFACE}" '
+                 f'stroke-width="1.2">{tip(t)}</circle>')
+    # sequential scale legend: one hue, light → dark, with its ends labelled beside it
+    rx0 = PAD + 24
+    o.append(f'<text class="axtext" x="{PAD}" y="{H - 30}">consumption (pc_cons)</text>')
+    for i in range(7):
+        o.append(f'<rect x="{rx0 + i * 15}" y="{H - 24}" width="13" height="8" rx="2" '
+                 f'fill="var(--seq-{i + 1})"/>')
+    o.append(f'<text class="axtext" x="{rx0 - 5}" y="{H - 17}" text-anchor="end">'
+             f'{lo_v:.1f}</text>')
+    o.append(f'<text class="axtext" x="{rx0 + 7 * 15 + 1}" y="{H - 17}">{hi_v:.1f}</text>')
+    o.append("</svg>")
+    return "".join(o)
+
+def fig_recall():
+    rows = [r for r in (D.get("fig3_missed") or []) if r["objects_per_cluster"] > 0]
+    if not rows:
+        return ""
+    rows = sorted(rows, key=lambda r: -r["objects_per_cluster"])
+    W, PADL, PADR, PADT = 760, 176, 64, 14
+    rowh, barh = 26, 14
+    H = PADT + rowh * len(rows) + 50
+    x0, x1 = PADL, W - PADR
+    o = [svg_open(W, H, "per-class recall of detected objects inside the acquired subtiles")]
+    o.append(x_grid(PADT, PADT + rowh * len(rows), x0, x1, 1.0,
+                    fmt=lambda v: f"{v * 100:.0f}%"))
+    for i, r in enumerate(rows):
+        y = PADT + i * rowh + (rowh - barh) / 2
+        w = max(1.5, (x1 - x0) * r["recall"])
+        o.append(f'<text class="lbl" x="{x0 - 10}" y="{y + barh - 2:.0f}" '
+                 f'text-anchor="end">{esc(r["class"])}</text>')
+        t = (f"{r['class']}: {r['recall'] * 100:.1f}% of {r['objects_per_cluster']:.2f} "
+             f"objects per cluster kept; {r['missed_by_RL']:.2f} missed")
+        o.append(f'<path d="{bar_path(x0, y, w, barh, 4, True)}" fill="{S1}">'
+                 f'{tip(t)}</path>')
+        o.append(f'<text class="vlbl" x="{x0 + w + 6:.1f}" y="{y + barh - 2:.0f}">'
+                 f'{r["recall"] * 100:.0f}%</text>')
+    o.append(f'<text class="lbl" x="{(x0 + x1) / 2:.0f}" y="{H - 6}" text-anchor="middle">'
+             f'share of the class\u2019s objects that fall inside the acquired subtiles</text>')
+    o.append("</svg>")
+    return figure(
+        "".join(o),
+        f"Classes ordered by how common they are. Buying {pc(mean_hr, 1)} of the imagery "
+        f"keeps {pc(object_recall, 1)} of all detected objects, which is the acquisition "
+        "claim of the paper reproducing; uniform sampling at this budget would keep about "
+        f"{pc(mean_hr, 0)} of each class.")
+
+def fig_shap(n=14):
+    rows = (shap or [])[:n]
+    if not rows:
+        return ""
+    W, PADL, PADR, PADT = 760, 196, 70, 14
+    rowh, barh = 26, 14
+    H = PADT + rowh * len(rows) + 50
+    x0, x1 = PADL, W - PADR
+    _, vmax = nice_axis(1.04 * max(r["mean_abs_shap"] for r in rows))
+    o = [svg_open(W, H, "mean absolute SHAP per feature")]
+    o.append(x_grid(PADT, PADT + rowh * len(rows), x0, x1, vmax))
+    for i, r in enumerate(rows):
+        is_hr = r["feature"] in classes
+        y = PADT + i * rowh + (rowh - barh) / 2
+        w = max(1.5, (x1 - x0) * r["mean_abs_shap"] / vmax)
+        o.append(f'<text class="lbl" x="{x0 - 10}" y="{y + barh - 2:.0f}" '
+                 f'text-anchor="end">{esc(r["feature"])}</text>')
+        kind = "HR object count" if is_hr else "LR descriptor"
+        t = f"{r['feature']} ({kind}): mean |SHAP| {r['mean_abs_shap']:.4f}"
+        o.append(f'<path d="{bar_path(x0, y, w, barh, 4, True)}" fill="{S2 if is_hr else S1}">'
+                 f'{tip(t)}</path>')
+        o.append(f'<text class="vlbl" x="{x0 + w + 6:.1f}" y="{y + barh - 2:.0f}">'
+                 f'{r["mean_abs_shap"]:.3f}</text>')
+    o.append(f'<text class="lbl" x="{(x0 + x1) / 2:.0f}" y="{H - 6}" text-anchor="middle">'
+             f'mean |SHAP| on the held-out predictions</text>')
+    o.append("</svg>")
+    return figure(
+        "".join(o),
+        f"Top {len(rows)} of {len(shap)} features. The bought object counts hold "
+        f"{pc(shap_hr_share, 1)} of total importance; everything above them is a free "
+        "Sentinel-2 descriptor.",
+        legend=[("LR descriptor (free)", S1), ("HR object count (bought)", S2)])
+
+def fig_examples(n=3):
+    """A few clusters, with the acquisition mask drawn over the two images."""
+    picks = sorted([c for c in clusters if sum(c.get("mask") or [])], key=lambda c: -c["hr_frac"])[:n]
+    zero = [c for c in clusters if not sum(c.get("mask") or [])]
+    zero = sorted(zero, key=lambda c: -sum(c.get("counts_full") or []))[:1]
+    G = grid.get("side") or 16
+    out = []
+    for c in picks + zero:
+        nsel = int(sum(c["mask"]))
+        cells = []
+        for i, on in enumerate(c["mask"]):
+            r, col = divmod(i, G)
+            if on:
+                cells.append(f'<rect x="{col + 0.04}" y="{r + 0.04}" width="0.92" '
+                             f'height="0.92" rx="0.08" fill="none" stroke="{S2}" '
+                             f'stroke-width="0.09"/>')
+            else:
+                cells.append(f'<rect x="{col}" y="{r}" width="1" height="1" '
+                             f'fill="var(--surface-0)" fill-opacity="0.76"/>')
+        overlay = (f'<svg class="overlay" viewBox="0 0 {G} {G}" preserveAspectRatio="none">'
+                   + "".join(cells) + "</svg>")
+        out.append(
+            f'<div class="ex">'
+            f'<div class="ex-head"><b>Cluster {c["cid"]}</b> '
+            f'<span class="muted">{"urban" if c["urban"] else "rural"} · pc_cons '
+            f'{c["y_true"]:.2f} · predicted {c["y_pred"]:.2f} · bought {nsel}/{G * G} '
+            f'subtiles · {num(sum(c["counts_selected"]))} of '
+            f'{num(sum(c["counts_full"]))} objects</span></div>'
+            f'<div class="imgrow">'
+            f'<figure><figcaption>Sentinel-2 <span class="tag">free</span></figcaption>'
+            f'<div class="imgwrap"><img loading="lazy" src="data/{c["lr_img"]}" '
+            f'alt="Sentinel-2 image of cluster {c["cid"]}"></div></figure>'
+            f'<figure><figcaption>High resolution <span class="tag tag-cost">costly</span>'
+            f'</figcaption><div class="imgwrap"><img loading="lazy" src="data/{c["hr_img"]}" '
+            f'alt="High-resolution image of cluster {c["cid"]}, with the acquired subtiles '
+            f'outlined">{overlay}</div></figure>'
+            f'</div></div>')
+    return ('<div class="examples">' + "".join(out) + "</div>"
+            + f'<p class="cap">Outlined cells were bought and sent to the detector; dimmed '
+              f'cells were never purchased. The last cluster is one the policy declined '
+              f'entirely — {zero_hr} of {len(clusters)} end up that way at λ = '
+              f'{cfg.get("LAMBDA")}, and are predicted from the free image alone.</p>')
+
 # ─────────────────────────────────────────────────────────────── HTML rendering
 def md_bold(s):
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
@@ -566,6 +975,8 @@ def html_report():
       f'{"xView-finetuned" if DET_IS_XVIEW else "COCO"} YOLOv3 · '
       f'<a href="report.md">Markdown</a> · <a href="data/data.json">data.json</a> · '
       f'<a href="llms.txt">llms.txt</a></p>')
+    a('<p class="muted">'
+      + " · ".join(f'<a href="{u}">{esc(n)}</a>' for n, u in LINKS) + "</p>")
     a(f"<p>{ABSTRACT}</p>")
     a('<p class="muted">This tab is static HTML: the numbers below are baked in at deploy '
       "time, so anything that reads the page without running JavaScript still sees the whole "
@@ -574,12 +985,12 @@ def html_report():
     a("<h3>Headline numbers</h3>")
     a(T["headline"].html())
 
-    a("<h3>What this run shows</h3><ol>")
+    a('<h3 id="findings">What this run shows</h3><ol>')
     for v in VERDICT:
         a(f"<li>{md_bold(v)}</li>")
     a("</ol>")
 
-    a("<h3>Accuracy by acquisition policy and feature variant</h3>")
+    a('<h3 id="accuracy">Accuracy by acquisition policy and feature variant</h3>')
     a('<p class="muted">Pearson r² on the held-out split, mean over '
       f"{n_seeds} seeds. Every policy is given the same tile budget the learned policy "
       "used, so the columns are like-for-like."
@@ -588,20 +999,35 @@ def html_report():
          "feature class — so it is omitted rather than repeated.") + "</p>")
     for t in TARGETS:
         a(f"<h4>Target: {TARGET_LABEL.get(t, t)}</h4>")
+        a(fig_methods(t))
         a(T[f"pivot_{t}"].html())
         a(f"<details><summary>All metrics, target {TARGET_LABEL.get(t, t)}</summary>"
           + T[f"full_{t}"].html() + "</details>")
 
     if "sweep" in T:
-        a("<h3>Cost / accuracy trade-off</h3>")
+        a('<h3 id="cost">Cost / accuracy trade-off</h3>')
         a(f'<p class="muted">λ is the cost coefficient in R<sub>cost</sub>; '
           f'{cfg.get("SWEEP_SEEDS")} seed × {cfg.get("SWEEP_EPOCHS")} epochs per point, so '
           "these are noisier than the table above. Read the counts-only column: it is "
           "monotone in how much imagery gets bought.</p>")
+        a(fig_sweep())
         a(T["sweep"].html())
 
+    a('<h3 id="training">How the policy trains</h3>')
+    a(fig_curves())
+
+    a('<h3 id="predictions">Predictions and where they land</h3>')
+    a('<div class="fig-pair">' + fig_scatter() + fig_map() + "</div>")
+    a(f'<p class="cap">Left: held-out predictions against the survey value for the '
+      f'{len(oof)} clusters that were in a test split, pooled over seeds; the diagonal is '
+      f'parity, and the pooled correlation is r = {f(oof_r)} (RMSE {f(oof_rmse, 2)}). '
+      f'Right: the {len(clusters)} clusters in place, shaded by measured consumption.</p>')
+
+    a('<h3 id="examples">What the policy actually buys</h3>')
+    a(fig_examples())
+
     if "detector" in T:
-        a("<h3>Detector</h3>")
+        a('<h3 id="detector">Detector</h3>')
         a(f"<p>{esc(D.get('detector_caveat', ''))} Trained on {num(dr.get('train_images'))} "
           f"xView chips and validated on {num(dr.get('val_images'))} in "
           f"{f(dr.get('hours'), 1)} GPU-hours: mAP@50 {f(dr.get('map50'))}, "
@@ -617,24 +1043,27 @@ def html_report():
               + "</details>")
 
     if "missed" in T:
-        a("<h3>What the policy chooses not to look at</h3>")
+        a('<h3 id="missed">What the policy chooses not to look at</h3>')
         a('<p class="muted">Objects per cluster the detector would have found in the dropped '
           "subtiles — the paper's Fig. 3 analogue. Recall is per class, over the acquired "
           "subtiles only.</p>")
+        a(fig_recall())
         a(T["missed"].html())
 
     if "shap" in T:
-        a("<h3>Feature importance (TreeSHAP, counts + LR regressor)</h3>")
-        a(T["shap"].html())
+        a('<h3 id="shap">Feature importance (TreeSHAP, counts + LR regressor)</h3>')
+        a(fig_shap())
+        a("<details><summary>All " + str(len(shap)) + " features</summary>"
+          + T["shap"].html() + "</details>")
 
-    a("<h3>Method</h3>")
+    a('<h3 id="method">Method</h3>')
     for h, body in METHOD_PROSE:
         a(f"<h4>{esc(h)}</h4>{body}")
 
     a("<h3>Deviations from the paper</h3>")
     a(T["deviations"].html())
 
-    a("<h3>Caveats</h3><ul>")
+    a('<h3 id="caveats">Caveats</h3><ul>')
     for c in CAVEATS:
         a(f"<li>{c}</li>")
     a("</ul>")
@@ -649,7 +1078,7 @@ def html_report():
         a("<li>" + link + " &mdash; " + esc(what) + "</li>")
     a("</ul>")
 
-    a("<h3>Per-cluster results</h3>")
+    a('<h3 id="clusters">Per-cluster results</h3>')
     a(f'<p class="muted">All {len(clusters)} clusters, predictions from the RL policy with '
       f'counts + LR features. <a href="data/clusters.csv">CSV</a>.</p>')
     a("<details><summary>Show the full per-cluster table</summary>"
@@ -667,6 +1096,24 @@ def strip_tags(s):
     s = re.sub(r"<[^>]+>", "", s)
     return re.sub(r"\n{3,}", "\n\n", html.unescape(s)).strip()
 
+NAV_ITEMS = [("Findings", "#findings"), ("Accuracy", "#accuracy"), ("Cost", "#cost"),
+             ("Training", "#training"), ("Predictions", "#predictions"),
+             ("Examples", "#examples"), ("Detector", "#detector"), ("Method", "#method"),
+             ("Caveats", "#caveats"), ("Clusters", "#clusters")]
+
+def nav_html():
+    return ('<nav class="tabs" aria-label="Sections">'
+            + "".join(f'<a class="tab" href="{h}">{esc(n)}</a>' for n, h in NAV_ITEMS)
+            + "</nav>")
+
+def foot_html():
+    return (f'<span>{D.get("n_clusters")} clusters · {grid.get("subtiles")} HR subtiles each '
+            f'· run {esc(D.get("generated", ""))}</span> <span>'
+            + " · ".join(f'<a href="{u}">{esc(n)}</a>' for n, u in LINKS)
+            + ' · <a href="report.md">report.md</a> · <a href="llms.txt">llms.txt</a>'
+              ' · <a href="data/data.json">data.json</a>'
+              ' · <a href="data/clusters.csv">clusters.csv</a></span>')
+
 def markdown_report():
     L, a = [], None
     a = L.append
@@ -674,6 +1121,9 @@ def markdown_report():
     a("")
     a(f"*Reimplementation of {PAPER_LINE}. Generated from `data/data.json`; "
       f"run {D.get('generated')}.*")
+    a("")
+    a("- Site: " + SITE)
+    a("\n".join(f"- {n}: {u}" for n, u in LINKS))
     a("")
     a(strip_tags(ABSTRACT))
     a("")
@@ -787,6 +1237,11 @@ def llms_txt():
         f"alone, and {f(m['nd_co'])} from counts over every subtile. The acquisition policy "
         "works; the high-resolution counts add nothing measurable beyond the free image.",
         "",
+        "## Links",
+        "",
+        f"- [Site]({SITE}): this report as a static page.",
+        "\n".join(f"- [{n}]({u})" for n, u in LINKS),
+        "",
         "## Docs",
         "",
         "- [Full report (Markdown)](report.md): every table, figure caption and caveat from "
@@ -833,6 +1288,9 @@ def json_ld():
         "name": f"{PAPER.get('title', '')} — reimplementation run ({run_date})",
         "description": strip_tags(ABSTRACT),
         "datePublished": run_date,
+        "url": SITE,
+        "codeRepository": LINKS[0][1],
+        "sameAs": [u for _, u in LINKS],
         "license": "https://opensource.org/licenses/MIT",
         "keywords": ["poverty mapping", "remote sensing", "reinforcement learning", "YOLOv3",
                      "xView", "Sentinel-2", "Uganda", "LSMS", "object detection",
@@ -907,6 +1365,8 @@ def main():
     idx = splice(idx, "<!-- PRERENDER:HEAD -->", "<!-- /PRERENDER:HEAD -->",
                  f'<meta name="description" content="{esc_attr(meta_description())}">\n'
                  '<script type="application/ld+json">\n' + json_ld() + "\n</script>")
+    idx = splice(idx, "<!-- PRERENDER:NAV -->", "<!-- /PRERENDER:NAV -->", nav_html())
+    idx = splice(idx, "<!-- PRERENDER:FOOT -->", "<!-- /PRERENDER:FOOT -->", foot_html())
     (FE / "index.html").write_text(idx)
     (FE / "report.md").write_text(markdown_report())
     (FE / "llms.txt").write_text(llms_txt())
