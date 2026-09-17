@@ -13,7 +13,7 @@
   --div-lo:#2a78d6; --div-mid:#f0efec; --div-hi:#e34948;
   --shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.06);
   --r:10px;
-  --col:900px;        /* reading column */
+  --col:940px;        /* reading column */
   --col-wide:1160px;  /* tables, figures, images */
 }
 @media (prefers-color-scheme: dark){
@@ -48,17 +48,20 @@
 }
 
 *{box-sizing:border-box}
+#report > *{max-width:100%}
 html{height:100%}
 body{
   margin:0; min-height:100%;
   background:var(--surface-0); color:var(--text-primary);
-  font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Inter,sans-serif;
+  font:16.5px/1.62 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Inter,sans-serif;
   -webkit-font-smoothing:antialiased;
   display:flex; flex-direction:column;
 }
-h1,h2,h3{margin:0 0 .35em; line-height:1.25; letter-spacing:-.011em}
-h1{font-size:17px} h2{font-size:16px} h3{font-size:14px}
-p{margin:0 0 .8em}
+h1,h2,h3,h4{margin:0 0 .35em; line-height:1.22; letter-spacing:-.014em}
+h1{font-size:19px} h2{font-size:28px} h3{font-size:20px} h4{font-size:16px}
+p{margin:0 0 .9em}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:hover{text-decoration-thickness:2px}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
   background:var(--surface-2);padding:.1em .38em;border-radius:5px}
 .muted{color:var(--text-muted);font-weight:400}
@@ -69,22 +72,25 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
   background:var(--surface-1);border-bottom:1px solid var(--border);
   position:sticky;top:0;z-index:600;flex-wrap:wrap;
 }
-.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.brand{display:flex;align-items:center;gap:11px;min-width:0;flex:1 1 auto}
 .logo{font-size:22px;line-height:1}
-.sub{margin:0;font-size:12px;color:var(--text-muted)}
-.tabs{display:flex;gap:2px;margin-left:auto;background:var(--surface-2);padding:3px;border-radius:9px}
+.sub{margin:0;font-size:13px;color:var(--text-muted)}
+.tabs{display:flex;gap:2px;margin-left:auto;background:var(--surface-2);padding:3px;
+  border-radius:9px;min-width:0;max-width:100%;overflow-x:auto;scrollbar-width:thin}
+.tabs::-webkit-scrollbar{height:0}
 .tab{
-  border:0;background:transparent;color:var(--text-secondary);font:inherit;font-size:13.5px;
-  font-weight:500;padding:6px 14px;border-radius:7px;cursor:pointer;
+  border:0;background:transparent;color:var(--text-secondary);font:inherit;font-size:14px;
+  font-weight:500;padding:7px 13px;border-radius:7px;cursor:pointer;
 }
+.tab{white-space:nowrap}
 .tab:hover{color:var(--text-primary)}
 .tab.is-active{background:var(--surface-1);color:var(--text-primary);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 
 .view{flex:1 0 auto}
 .tabs a.tab{text-decoration:none;line-height:1.6}
 
-.foot{flex-shrink:0;padding:14px 20px;border-top:1px solid var(--border);
-  background:var(--surface-1);color:var(--text-muted);font-size:12px}
+.foot{flex-shrink:0;padding:18px 24px;border-top:1px solid var(--border);
+  background:var(--surface-1);color:var(--text-muted);font-size:13px;line-height:1.7}
 .foot > span{display:block;max-width:1240px;margin:0 auto}
 .foot > span + span{margin-top:4px}
 
@@ -99,18 +105,48 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
 .imgwrap{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--surface-2)}
 .imgwrap img{width:100%;height:100%;object-fit:cover;display:block}
 .overlay{position:absolute;inset:0;width:100%;height:100%}
-.cap{font-size:11.5px;color:var(--text-muted);margin:6px 0 0;line-height:1.4}
+.cap{font-size:13.5px;color:var(--text-muted);margin:10px 0 0;line-height:1.55}
 
-/* ── cards ──────────────────────────────────────────────────────────────── */
-.card{background:var(--surface-1);border:1px solid var(--border);border-radius:14px;
-  padding:18px 20px;margin-bottom:16px}
-.prose{max-width:none}
-.prose ol{padding-left:1.2em}.prose li{margin-bottom:.45em}
+/* ── the paper ──────────────────────────────────────────────────────────── */
+.paper{background:var(--surface-1);border:1px solid var(--border);border-radius:18px;
+  padding:44px 48px 40px;box-shadow:var(--shadow)}
+.paper ol{padding-left:1.25em}
+.paper li{margin-bottom:.5em}
+
+.masthead{margin-bottom:26px}
+.eyebrow{font-size:12.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 10px}
+.masthead h2{margin-bottom:.3em;max-width:32ch;font-size:31px}
+.byline{font-size:15.5px;color:var(--text-secondary);margin:0 0 14px}
+.chips{list-style:none;display:flex;flex-wrap:wrap;gap:7px;padding:0;margin:0 0 14px}
+.chips li{font-size:13px;color:var(--text-secondary);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:999px;padding:4px 12px}
+.links{font-size:14.5px;margin:0}
+.links a{white-space:nowrap}
+
+.notice{display:block;background:var(--surface-2);border:1px solid var(--border-strong);
+  border-radius:12px;padding:18px 22px;margin:4px 0 26px;font-size:15.5px;line-height:1.62;
+  color:var(--text-secondary)}
+.notice b{color:var(--text-primary)}
+.notice em{font-style:italic}
+
+.lede{font-size:17.5px;line-height:1.6;color:var(--text-secondary);margin-bottom:22px}
+.colophon{font-size:13.5px;color:var(--text-muted);margin-top:34px;padding-top:16px;
+  border-top:1px solid var(--border)}
+
+/* headline numbers as tiles rather than as the first of many tables */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;
+  margin:0 0 26px}
+.kpi{background:var(--surface-2);border-radius:12px;padding:15px 16px 13px}
+.kpi-v{font-size:29px;font-weight:650;letter-spacing:-.028em;line-height:1.05;
+  font-variant-numeric:tabular-nums}
+.kpi-k{font-size:13.5px;font-weight:550;margin-top:5px;color:var(--text-primary)}
+.kpi-s{font-size:12.5px;color:var(--text-muted);margin-top:2px;line-height:1.35}
 
 /* ── the report ─────────────────────────────────────────────────────────── */
 /* The whole page is one prerendered article: long prose, many wide tables and inline SVG
    figures, so it gets its own rhythm rather than the card defaults. */
-#view-report{max-width:1240px;margin:0 auto;width:100%;padding:26px 24px 48px}
+#view-report{max-width:1280px;margin:0 auto;width:100%;padding:32px 24px 56px}
 #report{margin:0 auto}
 
 /* Everything sits in one of two centred columns: a narrow one for reading, a wide one for
@@ -118,7 +154,8 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
    with an empty gutter beside it. Running text keeps a comfortable measure rather than
    stretching the full width — long lines are hard to track back to. */
 #report > h2,#report > h3,#report > h4,#report > p,#report > ol,#report > ul,#report > dl,
-#report > section.plain,#report > .reads,#report > details > summary{
+#report > section.plain,#report > .reads,#report > details > summary,#report > .notice,
+#report > .masthead,#report > .kpis,#report > .colophon{
   max-width:var(--col);margin-left:auto;margin-right:auto}
 #report > .tablewrap,#report > figure.fig,#report > .fig-pair,#report > .examples,
 #report > details,#report > .ex{max-width:var(--col-wide);margin-left:auto;margin-right:auto}
@@ -134,15 +171,13 @@ figure.fig figcaption{max-width:var(--col);margin-left:auto;margin-right:auto}
 .ex .imgrow{justify-content:center}
 .ex-head{justify-content:center;text-align:center}
 .examples > .cap{max-width:var(--col);margin-left:auto;margin-right:auto}
-#report h3{margin-top:26px;padding-top:16px;border-top:1px solid var(--border);font-size:15px}
-#report h4{margin:18px 0 .3em;font-size:13.5px;color:var(--text-secondary)}
-#report > p:first-of-type + p{color:var(--text-secondary)}
-#report ol > li{margin-bottom:.9em}
-#report details{margin-top:10px}
-#report summary{cursor:pointer;font-size:12.5px;color:var(--text-muted);
-  padding:5px 0;user-select:none}
+#report h3{margin-top:46px;padding-top:22px;border-top:1px solid var(--border)}
+#report h4{margin:26px 0 .35em;color:var(--text-secondary)}
+#report ol > li{margin-bottom:1em}
+#report details{margin-top:14px}
+#report summary{cursor:pointer;font-size:14px;color:var(--text-muted);padding:7px 0;
+  user-select:none}
 #report summary:hover{color:var(--text-primary)}
-#report .tablewrap{max-height:none}
 #report li b:first-child{color:var(--text-primary)}
 
 .tablewrap{overflow-x:auto;margin-top:12px}
@@ -158,36 +193,47 @@ tr.is-hi td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
 
 /* chart bits */
 .ax{stroke:var(--grid);stroke-width:1}
-.axtext{fill:var(--text-muted);font-size:10.5px}
-.lbl{fill:var(--text-secondary);font-size:11px}
-.vlbl{fill:var(--text-primary);font-size:11px;font-weight:600}
-.legend-row{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 10px;font-size:12.5px;
+.axtext{fill:var(--text-muted);font-size:11.5px}
+.lbl{fill:var(--text-secondary);font-size:12.5px}
+.vlbl{fill:var(--text-primary);font-size:12.5px;font-weight:650}
+.legend-row{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 12px;font-size:13.5px;
   color:var(--text-secondary)}
 .legend-row span{display:inline-flex;align-items:center;gap:6px}
 .swatch{width:11px;height:11px;border-radius:3px;display:inline-block}
 
 
 @media (max-width:900px){
-  .imgrow{grid-template-columns:1fr}
+  .imgrow,.ex .imgrow{grid-template-columns:1fr}
   .fig-pair{gap:10px}
-  #view-report{padding:16px 16px 32px}
-  .topbar{gap:10px}
-  .tabs{margin-left:0;overflow-x:auto;max-width:100%}
+  .fig-pair svg{min-width:0}
+  #view-report{padding:16px 12px 32px}
+  .paper{padding:24px 18px 28px;border-radius:14px}
+  .masthead h2{font-size:24px}
+  .lede{font-size:16.5px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:9px}
+  .kpi-v{font-size:25px}
+  .plain{padding:16px 18px}
+  .notice{padding:15px 17px}
+  table{font-size:13.5px}
+  th,td{padding:8px 10px}
+  .topbar{gap:10px;padding:10px 14px}
+  .tabs{margin-left:0}
+  .foot{padding:14px}
 }
 
 /* ── static figures ─────────────────────────────────────────────────────── */
 /* Every chart is inline SVG written by prerender.py. Marks reference the colour tokens
    above, so light/dark theming needs no second palette and no script. */
-.fig{margin:14px 0 6px}
+.fig{margin:20px 0 8px}
 .fig svg{display:block;max-width:100%;height:auto}
 .fig-pair{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
 .fig-pair svg{flex:1 1 320px;min-width:280px}
 figure.fig{margin-inline:0}
 
 .examples{display:flex;flex-direction:column;gap:18px;margin:14px 0 6px}
-.ex{border:1px solid var(--border);border-radius:12px;padding:12px 14px;
+.ex{border:1px solid var(--border);border-radius:14px;padding:16px 18px;
   background:var(--surface-2)}
-.ex-head{font-size:13px;margin-bottom:9px;display:flex;gap:8px;flex-wrap:wrap;
+.ex-head{font-size:14.5px;margin-bottom:11px;display:flex;gap:9px;flex-wrap:wrap;
   align-items:baseline}
 .ex .imgrow{margin:0;grid-template-columns:repeat(2,minmax(0,400px));gap:16px}
 .ex .imgwrap{background:var(--surface-0)}
@@ -196,16 +242,27 @@ figure.fig{margin-inline:0}
 /* The report is read by people who do not work on remote sensing or RL, so the technical
    sections are interleaved with passages that assume neither. */
 .plain{background:var(--surface-2);border-left:3px solid var(--accent);
-  border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0 18px}
-.plain h4{margin:0 0 .4em;font-size:13px;color:var(--text-primary);
-  text-transform:uppercase;letter-spacing:.05em}
+  border-radius:0 12px 12px 0;padding:20px 24px;margin:22px 0 26px}
+.plain h4{margin:0 0 .6em;font-size:13px;color:var(--accent);font-weight:650;
+  text-transform:uppercase;letter-spacing:.09em}
 .plain p:last-child{margin-bottom:0}
-.plain p,.plain li{max-width:100ch}
-.reads{font-size:13px;color:var(--text-secondary);margin:8px 0 18px;max-width:104ch}
+.plain p,.plain li{max-width:none}
+.reads{font-size:15.5px;color:var(--text-secondary);margin:10px 0 20px;max-width:none}
 .reads b{color:var(--text-primary)}
-dl.glossary{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:8px 20px;
-  margin:12px 0 0;font-size:13.5px}
+dl.glossary{display:grid;grid-template-columns:minmax(160px,230px) 1fr;gap:12px 24px;
+  margin:18px 0 0;font-size:15px}
 dl.glossary dt{font-weight:600}
 dl.glossary dd{margin:0;color:var(--text-secondary)}
 @media (max-width:700px){dl.glossary{grid-template-columns:1fr;gap:2px 0}
   dl.glossary dd{margin-bottom:10px}}
+
+/* ── small screens ──────────────────────────────────────────────────────── */
+/* These repeat the mobile block above because the rules they override are declared further
+   down the file; equal specificity, so the last one wins. */
+@media (max-width:900px){
+  .ex .imgrow{grid-template-columns:1fr}
+  .fig-pair svg{min-width:0;flex:1 1 100%}
+  .examples{gap:14px}
+  .plain{padding:16px 18px;margin:18px 0 20px}
+  .reads{font-size:15px}
+}

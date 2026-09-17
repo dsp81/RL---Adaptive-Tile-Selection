@@ -197,6 +197,7 @@ PAPER = D.get("paper", {})
 PAPER_LINE = (f"{PAPER.get('authors', '')}, “{PAPER.get('title', '')}”, {PAPER.get('venue', '')}")
 run_date = (D.get("generated") or "")[:10]
 SITE = "https://dsp81.github.io/RL---Adaptive-Tile-Selection/"
+AUTHOR = "Digvijay Singh Parihar"
 LINKS = [
     ("Code and project", "https://github.com/dsp81/RL---Adaptive-Tile-Selection"),
     ("Kaggle notebook — pipeline",
@@ -730,14 +731,18 @@ def svg_open(w, h, label):
     return (f'<svg viewBox="0 0 {w} {h}" width="{w}" height="{h}" role="img" '
             f'aria-label="{xml(label)}" style="width:100%;height:auto;max-width:{w}px">')
 
+FIGNO = [0]
+
 def figure(body, caption, legend=None):
     lg = ""
     if legend:
         lg = ('<div class="legend-row">' + "".join(
             f'<span><i class="swatch" style="background:{c}"></i>{esc(n)}</span>'
             for n, c in legend) + "</div>")
+    FIGNO[0] += 1
     return (f'<figure class="fig">{lg}{body}'
-            f'<figcaption class="cap">{caption}</figcaption></figure>')
+            f'<figcaption class="cap"><b>Figure {FIGNO[0]}.</b> {caption}</figcaption>'
+            f"</figure>")
 
 def y_grid(x0, x1, y_top, y_bot, vmax, ticks=4, fmt=lambda v: f"{v:.2f}", vmin=0.0):
     out = []
@@ -1096,27 +1101,58 @@ def fig_examples(n=3):
 def md_bold(s):
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
 
+def repro_notice():
+    return (f'<aside class="notice"><b>This is a reproduction, not original research.</b> '
+            f'The method, the experiment design and the result being reproduced are the work '
+            f'of {esc(PAPER.get("authors", ""))} — <em>“{esc(PAPER.get("title", ""))}”</em>, '
+            f'{esc(PAPER.get("venue", ""))}. Everything on this page is my own: the code was '
+            f'written from the paper (no code from the authors was used), the imagery was '
+            f'scraped and assembled by me, and the runs are mine. Nothing here is affiliated '
+            f'with or endorsed by the authors, and where these numbers disagree with theirs, '
+            f'assume the difference is mine.</aside>')
+
+def chips():
+    items = [f"{D.get('n_clusters')} Uganda LSMS clusters",
+             f"{grid.get('side')}×{grid.get('side')} acquisition grid",
+             ("YOLOv3, COCO → xView" if DET_IS_XVIEW else "YOLOv3, COCO only"),
+             f"{n_seeds} seeds",
+             f"run {run_date}"]
+    return '<ul class="chips">' + "".join(f"<li>{esc(i)}</li>" for i in items) + "</ul>"
+
+def kpi_row():
+    m = S[MAIN]
+    tiles = [
+        (pc(mean_hr, 1), "of the imagery bought", "the policy's average spend per cluster"),
+        (pc(object_recall, 1), "of the objects still found", "inside the squares it did buy"),
+        (f(m["rl_lr"]), "r² with the bought counts", "held out, counts + free image"),
+        (f(m["lr_only"]), "r² from the free image alone", "nothing bought at all"),
+        (f"±{f(m['rl_sd'])}", "r² between seeds", f"spread over {n_seeds} runs — the error bar"),
+    ]
+    return ('<div class="kpis">' + "".join(
+        f'<div class="kpi"><div class="kpi-v">{v}</div><div class="kpi-k">{esc(k)}</div>'
+        f'<div class="kpi-s">{esc(sub)}</div></div>' for v, k, sub in tiles) + "</div>")
+
 def html_report():
     p, a = [], None
     a = p.append
     a('<main id="view-report" class="view">')
-    a('<article class="card prose" id="report">')
-    a(f"<h2>{esc(PAPER.get('title', 'Run report'))} — reimplementation report</h2>")
-    a(f'<p class="muted">Run {esc(D.get("generated", ""))} · {D.get("n_clusters")} Uganda LSMS '
-      f'clusters · {grid.get("side")}×{grid.get("side")} acquisition grid · '
-      f'{"xView-finetuned" if DET_IS_XVIEW else "COCO"} YOLOv3 · '
-      f'<a href="report.md">Markdown</a> · <a href="data/data.json">data.json</a> · '
-      f'<a href="llms.txt">llms.txt</a></p>')
-    a('<p class="muted">'
-      + " · ".join(f'<a href="{u}">{esc(n)}</a>' for n, u in LINKS) + "</p>")
-    a(f"<p>{ABSTRACT}</p>")
+    a('<article class="paper" id="report">')
+    a('<header class="masthead">')
+    a('<p class="eyebrow">Reproduction · AAAI 2021</p>')
+    a(f"<h2>{esc(PAPER.get('title', 'Run report'))}</h2>")
+    a(f'<p class="byline">Reimplemented and run by {esc(AUTHOR)} · '
+      f'<a href="{LINKS[0][1]}">source</a></p>')
+    a(chips())
+    a('<p class="links">' + " · ".join(f'<a href="{u}">{esc(n)}</a>' for n, u in LINKS)
+      + f' · <a href="report.md">Markdown</a> · <a href="data/data.json">data.json</a>'
+        f' · <a href="llms.txt">llms.txt</a></p>')
+    a("</header>")
+    a(repro_notice())
+    a(f'<p class="lede">{ABSTRACT}</p>')
+    a(kpi_row())
     a(plain_intro())
-    a('<p class="muted">This page runs no JavaScript. Every number, table and figure below '
-      "is written into the HTML when the site is built, so it reads the same in a browser, in "
-      "a crawler, and in <code>curl</code>. Hovering a bar, line or point shows its exact "
-      "value.</p>")
 
-    a("<h3>Headline numbers</h3>")
+    a('<h3 id="headline">Headline numbers</h3>')
     a(T["headline"].html())
 
     a('<h3 id="findings">What this run shows</h3><ol>')
@@ -1228,6 +1264,10 @@ def html_report():
     a("<details><summary>Show the full per-cluster table</summary>"
       + T["clusters"].html() + "</details>")
 
+    a('<p class="colophon">This page runs no JavaScript. Every number, table and figure on '
+      "it is written into the HTML when the site is built, so it reads the same in a browser, "
+      "in a crawler and in <code>curl</code> — hovering any bar, line or point shows its exact "
+      "value. Rebuild it from a fresh run with <code>python prerender.py</code>.</p>")
     a("</article>")
     a("</main>")
     return "\n".join(p)
@@ -1265,6 +1305,14 @@ def markdown_report():
     a("")
     a(f"*Reimplementation of {PAPER_LINE}. Generated from `data/data.json`; "
       f"run {D.get('generated')}.*")
+    a("")
+    a("> **This is a reproduction, not original research.** The method, the experiment design "
+      f"and the result being reproduced are the work of {PAPER.get('authors', '')} "
+      f"(*{PAPER.get('title', '')}*, {PAPER.get('venue', '')}). Everything here is my own: the "
+      "code was written from the paper, no code from the authors was used, the imagery was "
+      f"scraped and assembled by me, and the runs are mine — {AUTHOR}. Nothing here is "
+      "affiliated with or endorsed by the authors, and where these numbers disagree with "
+      "theirs, assume the difference is mine.")
     a("")
     a("- Site: " + SITE)
     a("\n".join(f"- {n}: {u}" for n, u in LINKS))
@@ -1390,6 +1438,12 @@ def llms_txt():
         f"{grid.get('side')} acquisition grid, with YOLOv3 fine-tuned from COCO onto xView. "
         f"One Kaggle run, {n_seeds} seeds, generated {D.get('generated')}.",
         "",
+        f"This is a REPRODUCTION, not original research. The method and the experiment design "
+        f"belong to {PAPER.get('authors', '')} ({PAPER.get('venue', '')}); the code, the "
+        f"dataset assembly, the runs and this report are {AUTHOR}'s own reimplementation "
+        f"written from the paper. Not affiliated with or endorsed by the authors. Attribute "
+        f"the method to them and any error here to this reimplementation.",
+        "",
         "Headline: the learned policy buys "
         f"{pc(mean_hr, 1)} of the high-resolution imagery and recovers "
         f"{pc(object_recall, 1)} of the objects on the full grid. Pearson r² on held-out "
@@ -1446,8 +1500,15 @@ def json_ld():
     return json.dumps({
         "@context": "https://schema.org",
         "@type": "Dataset",
-        "name": f"{PAPER.get('title', '')} — reimplementation run ({run_date})",
-        "description": strip_tags(ABSTRACT),
+        "name": f"{PAPER.get('title', '')} — independent reimplementation ({run_date})",
+        "description": "Independent reproduction, not original research. "
+                       + strip_tags(ABSTRACT),
+        "creator": {"@type": "Person", "name": AUTHOR,
+                    "url": "https://github.com/dsp81"},
+        "isBasedOn": {"@type": "ScholarlyArticle", "name": PAPER.get("title", ""),
+                      "author": PAPER.get("authors", ""),
+                      "publication": PAPER.get("venue", ""),
+                      "url": "https://ojs.aaai.org/index.php/AAAI/article/view/16072"},
         "datePublished": run_date,
         "url": SITE,
         "codeRepository": LINKS[0][1],
@@ -1490,8 +1551,9 @@ def esc_attr(s):
 
 def meta_description():
     m = S[MAIN]
-    return (f"Reimplementation of Ayush et al. (AAAI 2021) adaptive high-resolution tile "
-            f"acquisition on {D.get('n_clusters')} Uganda LSMS clusters, "
+    return (f"Independent reproduction (not original research) of Ayush et al. (AAAI 2021) "
+            f"adaptive high-resolution tile "
+            f"acquisition, on {D.get('n_clusters')} Uganda LSMS clusters, "
             f"{grid.get('side')}x{grid.get('side')} grid, YOLOv3 fine-tuned COCO to xView. The "
             f"learned policy buys {pc(mean_hr, 1)} of the imagery and recovers "
             f"{pc(object_recall, 1)} of detected objects; held-out Pearson r2 is "

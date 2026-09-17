@@ -2,6 +2,8 @@
 
 > Reinforcement-learned acquisition of high-resolution satellite subtiles for cluster-level poverty prediction: a reimplementation of Ayush, Uzkent, Tanmay, Burke, Lobell, Ermon, “Efficient Poverty Mapping from High Resolution Remote Sensing Images”, AAAI 2021 on 318 Uganda LSMS clusters at a 16×16 acquisition grid, with YOLOv3 fine-tuned from COCO onto xView. One Kaggle run, 7 seeds, generated 2026-09-16T20:42:15Z.
 
+This is a REPRODUCTION, not original research. The method and the experiment design belong to Ayush, Uzkent, Tanmay, Burke, Lobell, Ermon (AAAI 2021); the code, the dataset assembly, the runs and this report are Digvijay Singh Parihar's own reimplementation written from the paper. Not affiliated with or endorsed by the authors. Attribute the method to them and any error here to this reimplementation.
+
 Headline: the learned policy buys 13.7% of the high-resolution imagery and recovers 70.7% of the objects on the full grid. Pearson r² on held-out clusters is 0.033 from acquired object counts alone, 0.314 once the free Sentinel-2 descriptors are added, 0.326 from those descriptors alone, and 0.125 from counts over every subtile. The acquisition policy works; the high-resolution counts add nothing measurable beyond the free image.
 
 ## Links

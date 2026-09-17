@@ -2,6 +2,8 @@
 
 *Reimplementation of Ayush, Uzkent, Tanmay, Burke, Lobell, Ermon, “Efficient Poverty Mapping from High Resolution Remote Sensing Images”, AAAI 2021. Generated from `data/data.json`; run 2026-09-16T20:42:15Z.*
 
+> **This is a reproduction, not original research.** The method, the experiment design and the result being reproduced are the work of Ayush, Uzkent, Tanmay, Burke, Lobell, Ermon (*Efficient Poverty Mapping from High Resolution Remote Sensing Images*, AAAI 2021). Everything here is my own: the code was written from the paper, no code from the authors was used, the imagery was scraped and assembled by me, and the runs are mine — Digvijay Singh Parihar. Nothing here is affiliated with or endorsed by the authors, and where these numbers disagree with theirs, assume the difference is mine.
+
 - Site: https://dsp81.github.io/RL---Adaptive-Tile-Selection/
 - Code and project: https://github.com/dsp81/RL---Adaptive-Tile-Selection
 - Kaggle notebook — pipeline: https://www.kaggle.com/code/digvijaysinghparihar/povrl-adaptive-hr-tile-selection
