@@ -1,0 +1,23 @@
+# Efficient Poverty Mapping from High Resolution Remote Sensing Images — reimplementation (2026-09-16 run)
+
+> Reinforcement-learned acquisition of high-resolution satellite subtiles for cluster-level poverty prediction: a reimplementation of Ayush, Uzkent, Tanmay, Burke, Lobell, Ermon, “Efficient Poverty Mapping from High Resolution Remote Sensing Images”, AAAI 2021 on 318 Uganda LSMS clusters at a 16×16 acquisition grid, with YOLOv3 fine-tuned from COCO onto xView. One Kaggle run, 7 seeds, generated 2026-09-16T20:42:15Z.
+
+Headline: the learned policy buys 13.7% of the high-resolution imagery and recovers 70.7% of the objects on the full grid. Pearson r² on held-out clusters is 0.033 from acquired object counts alone, 0.314 once the free Sentinel-2 descriptors are added, 0.326 from those descriptors alone, and 0.125 from counts over every subtile. The acquisition policy works; the high-resolution counts add nothing measurable beyond the free image.
+
+## Docs
+
+- [Full report (Markdown)](report.md): every table, figure caption and caveat from the run, as text.
+- [Interactive viewer](index.html): the same report as the landing tab, plus a cluster map, per-cluster acquisition masks and charts.
+
+## Data
+
+- [data.json](data/data.json): the entire run as one JSON object — config, metrics, detector report, SHAP, per-cluster masks and predictions.
+- [results_raw.csv](data/results_raw.csv): per-seed metrics for every method × variant × target.
+- [lambda_sweep.csv](data/lambda_sweep.csv): the cost/accuracy sweep.
+- [clusters.csv](data/clusters.csv): per-cluster predictions and budget spent.
+
+## Notes
+
+- Between-seed sd is ±0.078 r²; differences smaller than that between methods are noise.
+- Native HR ground sample distance correlates with the target at r = 0.441, which bounds how much signal could ride on image sharpness rather than content.
+- 114 of 318 clusters are predicted with no high-resolution imagery bought at all.

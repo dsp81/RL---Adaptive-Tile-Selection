@@ -1,0 +1,50 @@
+# Static site: no build step, no functions, no env vars. `publish = "."` ships this folder.
+[build]
+  publish = "."
+  command = ""
+
+# Served as text so a fetcher (or a person with curl) gets the report, not a download prompt.
+# Netlify would otherwise guess application/octet-stream for .md.
+[[headers]]
+  for = "/report.md"
+  [headers.values]
+    Content-Type = "text/markdown; charset=utf-8"
+    Cache-Control = "public, max-age=600"
+    X-Robots-Tag = "all"
+
+[[headers]]
+  for = "/llms.txt"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    Cache-Control = "public, max-age=600"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    X-Robots-Tag = "all"
+
+[[headers]]
+  for = "/data/*.json"
+  [headers.values]
+    Content-Type = "application/json; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+    Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "/data/*.csv"
+  [headers.values]
+    Content-Type = "text/csv; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+    Access-Control-Allow-Origin = "*"
+
+# Thumbnails are content-addressed by cluster id and never change within a run.
+[[headers]]
+  for = "/data/clusters/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

@@ -1,0 +1,8 @@
+# Static research report. Crawling and LLM ingestion are welcome.
+User-agent: *
+Allow: /
+
+# Machine-readable entry points:
+#   /report.md       the whole run as Markdown
+#   /llms.txt        index for LLM fetchers
+#   /data/data.json  every number on the site
